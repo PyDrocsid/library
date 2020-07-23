@@ -71,7 +71,8 @@ class BasePermissionLevel(Enum):
         raise NotImplementedError
 
     async def check_permissions(self, member: Union[Member, User]) -> bool:
-        return (await self.get_permission_level(member)).value >= self.value
+        level: BasePermissionLevel = await self.get_permission_level(member)
+        return level.value >= self.value
 
     @property
     def check(self):
