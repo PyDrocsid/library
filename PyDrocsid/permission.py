@@ -72,7 +72,7 @@ class BasePermissionLevel(Enum):
 
     async def check_permissions(self, member: Union[Member, User]) -> bool:
         level: BasePermissionLevel = await self.get_permission_level(member)
-        return level.value >= self.value
+        return level.value >= self.value  # skipcq: PYL-W0143
 
     @property
     def check(self):
