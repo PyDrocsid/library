@@ -1,0 +1,104 @@
+from socket import gethostbyname, socket, AF_INET, SOCK_STREAM, timeout, SHUT_RD
+from time import time
+from typing import Optional, List
+
+from discord import Embed, Message
+from discord.abc import Messageable
+from discord.ext.commands import Command, Context, CommandError
+
+
+async def can_run_command(command: Command, ctx: Context) -> bool:
+    try:
+        return await command.can_run(ctx)
+    except CommandError:
+        return False
+
+
+def measure_latency() -> Optional[float]:
+    host = gethostbyname("discordapp.com")
+    s = socket(AF_INET, SOCK_STREAM)
+    s.settimeout(5)
+
+    t = time()
+
+    try:
+        s.connect((host, 443))
+        s.shutdown(SHUT_RD)
+    except (timeout, OSError):
+        return None
+
+    return time() - t
+
+
+def calculate_edit_distance(a: str, b: str) -> int:
+    dp = [[max(i, j) for j in range(len(b) + 1)] for i in range(len(a) + 1)]
+    for i in range(1, len(a) + 1):
+        for j in range(1, len(b) + 1):
+            dp[i][j] = min(dp[i - 1][j - 1] + (a[i - 1] != b[j - 1]), dp[i - 1][j] + 1, dp[i][j - 1] + 1)
+    return dp[len(a)][len(b)]
+
+
+def split_lines(text: str, max_size: int, *, first_max_size: Optional[int] = None) -> List[str]:
+    out = []
+    cur = ""
+    for line in text.splitlines():
+        ms = max_size if out or first_max_size is None else first_max_size
+        ext = "\n" * bool(cur) + line
+        if len(cur) + len(ext) > ms and cur:
+            out.append(cur)
+            cur = line
+        else:
+            cur += ext
+    if cur:
+        out.append(cur)
+    return out
+
+
+async def send_long_embed(
+    channel: Messageable, embed: Embed, *, repeat_title: bool = False, repeat_name: bool = False
+) -> List[Message]:
+    messages = []
+    fields = embed.fields.copy()
+    cur = embed.copy()
+    cur.clear_fields()
+    *parts, last = split_lines(embed.description or "", 2048) or [""]
+    for part in parts:
+        cur.description = part
+        messages.append(await channel.send(embed=cur))
+        if not repeat_title:
+            cur.title = ""
+            cur.remove_author()
+    cur.description = last
+    for field in fields:
+        name: str = field.name
+        value: str = field.value
+        inline: bool = field.inline
+        first_max_size = min(1024 if name or cur.fields or cur.description else 2048, 6000 - len(cur))
+        *parts, last = split_lines(value, 2048, first_max_size=first_max_size)
+        if len(cur.fields) >= 25 or len(cur) + len(name or "** **") + len(parts[0] if parts else last) > 6000:
+            messages.append(await channel.send(embed=cur))
+            if not repeat_title:
+                cur.title = ""
+                cur.remove_author()
+            cur.description = ""
+            cur.clear_fields()
+
+        for part in parts:
+            if name or cur.fields or cur.description:
+                cur.add_field(name=name or "** **", value=part, inline=False)
+            else:
+                cur.description = part
+            messages.append(await channel.send(embed=cur))
+            if not repeat_title:
+                cur.title = ""
+                cur.remove_author()
+            if not repeat_name:
+                name = ""
+            cur.description = ""
+            cur.clear_fields()
+        if name or cur.fields or cur.description:
+            cur.add_field(name=name or "** **", value=last, inline=inline and not parts)
+        else:
+            cur.description = last
+    messages.append(await channel.send(embed=cur))
+    return messages
