@@ -1,10 +1,11 @@
+import io
 from socket import gethostbyname, socket, AF_INET, SOCK_STREAM, timeout, SHUT_RD
 from time import time
-from typing import Optional, List
+from typing import Optional, List, Tuple
 
-from discord import Embed, Message
+from discord import Embed, Message, File, Attachment, TextChannel, Member
 from discord.abc import Messageable
-from discord.ext.commands import Command, Context, CommandError
+from discord.ext.commands import Command, Context, CommandError, Bot
 
 
 async def can_run_command(command: Command, ctx: Context) -> bool:
@@ -55,7 +56,7 @@ def split_lines(text: str, max_size: int, *, first_max_size: Optional[int] = Non
 
 
 async def send_long_embed(
-    channel: Messageable, embed: Embed, *, repeat_title: bool = False, repeat_name: bool = False
+        channel: Messageable, embed: Embed, *, repeat_title: bool = False, repeat_name: bool = False
 ) -> List[Message]:
     messages = []
     fields = embed.fields.copy()
@@ -102,3 +103,24 @@ async def send_long_embed(
             cur.description = last
     messages.append(await channel.send(embed=cur))
     return messages
+
+
+async def attachment_to_file(attachment: Attachment) -> File:
+    file = io.BytesIO()
+    await attachment.save(file)
+    return File(file, filename=attachment.filename, spoiler=attachment.is_spoiler())
+
+
+async def read_normal_message(bot: Bot, channel: TextChannel, author: Member) -> Tuple[str, List[File]]:
+    msg: Message = await bot.wait_for("message", check=lambda m: m.channel == channel and m.author == author)
+    return msg.content, [await attachment_to_file(attachment) for attachment in msg.attachments]
+
+
+async def read_complete_message(message: Message) -> Tuple[str, List[File], Optional[Embed]]:
+    for embed in message.embeds:
+        if embed.type == "rich":
+            break
+    else:
+        embed = None
+
+    return message.content, [await attachment_to_file(attachment) for attachment in message.attachments], embed
