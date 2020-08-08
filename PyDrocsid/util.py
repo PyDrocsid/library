@@ -56,7 +56,7 @@ def split_lines(text: str, max_size: int, *, first_max_size: Optional[int] = Non
 
 
 async def send_long_embed(
-        channel: Messageable, embed: Embed, *, repeat_title: bool = False, repeat_name: bool = False
+    channel: Messageable, embed: Embed, *, repeat_title: bool = False, repeat_name: bool = False
 ) -> List[Message]:
     messages = []
     fields = embed.fields.copy()
