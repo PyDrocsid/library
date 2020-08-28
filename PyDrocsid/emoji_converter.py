@@ -1,5 +1,6 @@
 from discord import PartialEmoji
 from discord.ext.commands import PartialEmojiConverter, BadArgument
+from .emojis import emoji_map
 
 
 class EmojiConverter(PartialEmojiConverter):
@@ -9,6 +10,9 @@ class EmojiConverter(PartialEmojiConverter):
         except BadArgument:
             pass
 
-        # noinspection PyProtectedMember
-        # skipcq: PYL-W0212
-        return PartialEmoji.with_state(ctx.bot._connection, animated=False, name=argument, id=None)
+        if argument in emoji_map.values():
+            # noinspection PyProtectedMember
+            # skipcq: PYL-W0212
+            return PartialEmoji.with_state(ctx.bot._connection, animated=False, name=argument, id=None)
+
+        raise BadArgument(f'Emoji "{argument}" not found.')
