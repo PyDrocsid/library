@@ -126,19 +126,32 @@ async def read_complete_message(message: Message) -> Tuple[str, List[File], Opti
     return message.content, [await attachment_to_file(attachment) for attachment in message.attachments], embed
 
 
-async def send_editable_log(channel: Messageable, title: str, name: str, value: str,
-                            colour: Optional[int] = 0x008080, inline: Optional[bool] = False,
-                            force_resend: Optional[bool] = False, force_new_embed: Optional[bool] = False):
-    messages = await channel.history(limit=1).flatten()
+async def send_editable_log(
+    channel: Messageable,
+    title: str,
+    name: str,
+    value: str,
+    *,
+    colour: Optional[int] = None,
+    inline: bool = False,
+    force_resend: bool = False,
+    force_new_embed: bool = False,
+    force_new_field: bool = False,
+):
+    messages: List[Message] = await channel.history(limit=1).flatten()
     if messages and messages[0].embeds and not force_new_embed:
-        embed = messages[0].embeds[0]
+        embed: Embed = messages[0].embeds[0]
         if embed.title == title:
-            if embed.fields and embed.fields[-1].name == name:
+            if embed.fields and embed.fields[-1].name == name and not force_new_field:
                 embed.set_field_at(index=-1, name=name, value=value, inline=inline)
             elif len(embed.fields) < 25:
                 embed.add_field(name=name, value=value, inline=inline)
             else:
                 force_new_embed = True
+
+            if colour is not None:
+                embed.colour = colour
+
             if not force_new_embed:
                 if force_resend:
                     await messages[0].delete()
@@ -147,6 +160,6 @@ async def send_editable_log(channel: Messageable, title: str, name: str, value: 
                 await messages[0].edit(embed=embed)
                 return
 
-    embed = Embed(title=title, colour=colour)
+    embed = Embed(title=title, colour=colour if colour is not None else 0x008080)
     embed.add_field(name=name, value=value, inline=inline)
     await channel.send(embed=embed)
