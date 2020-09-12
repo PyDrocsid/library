@@ -16,7 +16,7 @@ class NestedInt(int):
         return self._values.items()
 
 
-class Colour:
+class MaterialColours:
     red = NestedInt(
         0xF44336,
         {
