@@ -1,17 +1,17 @@
-from typing import Dict, List
+from collections import OrderedDict
+from typing import List, OrderedDict as OrderedDictType
 
 from discord import Message, NotFound
 from discord.ext.commands import Bot
 
-error_cache: Dict[Message, List[Message]] = {}
-error_queue: List[Message] = []
+error_cache: OrderedDictType[int, List[Message]] = OrderedDict()
 
 
 async def handle_command_edit(bot: Bot, message: Message):
-    if message not in error_cache:
+    if message.id not in error_cache:
         return
 
-    for msg in error_cache.pop(message):
+    for msg in error_cache.pop(message.id):
         try:
             await msg.delete()
         except NotFound:
@@ -20,10 +20,10 @@ async def handle_command_edit(bot: Bot, message: Message):
 
 
 def add_to_error_cache(message: Message, response: List[Message]):
-    error_cache[message] = response
-    error_queue.append(message)
+    if message.author.bot:
+        return
 
-    while len(error_queue) > 1000:
-        msg = error_queue.pop(0)
-        if msg in error_cache:
-            error_cache.pop(msg)
+    error_cache[message.id] = response
+
+    while len(error_cache) > 1000:
+        error_cache.popitem(last=False)
