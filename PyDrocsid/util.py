@@ -129,6 +129,7 @@ async def read_complete_message(message: Message) -> Tuple[str, List[File], Opti
 async def send_editable_log(
     channel: Messageable,
     title: str,
+    description: str,
     name: str,
     value: str,
     *,
@@ -141,7 +142,7 @@ async def send_editable_log(
     messages: List[Message] = await channel.history(limit=1).flatten()
     if messages and messages[0].embeds and not force_new_embed:
         embed: Embed = messages[0].embeds[0]
-        if embed.title == title:
+        if embed.title == title and embed.description == description:
             if embed.fields and embed.fields[-1].name == name and not force_new_field:
                 embed.set_field_at(index=-1, name=name, value=value, inline=inline)
             elif len(embed.fields) < 25:
@@ -160,6 +161,6 @@ async def send_editable_log(
                 await messages[0].edit(embed=embed)
                 return
 
-    embed = Embed(title=title, colour=colour if colour is not None else 0x008080)
+    embed = Embed(title=title, description=description, colour=colour if colour is not None else 0x008080)
     embed.add_field(name=name, value=value, inline=inline)
     await channel.send(embed=embed)
