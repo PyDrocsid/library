@@ -16,7 +16,7 @@ async def can_run_command(command: Command, ctx: Context) -> bool:
 
 
 def measure_latency() -> Optional[float]:
-    host = gethostbyname("discordapp.com")
+    host = gethostbyname("discord.com")
     s = socket(AF_INET, SOCK_STREAM)
     s.settimeout(5)
 
