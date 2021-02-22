@@ -19,7 +19,7 @@ class Thread(threading.Thread):
     def run(self):
         try:
             self._return = True, self._func()
-        except Exception as e:
+        except Exception as e:  # skipcq: PYL-W0703
             self._return = False, e
         self._loop.call_soon_threadsafe(self._event.set)
 
