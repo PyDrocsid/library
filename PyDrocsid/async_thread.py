@@ -1,6 +1,8 @@
 import asyncio
 import threading
 
+from functools import partial
+
 
 class Thread(threading.Thread):
     def __init__(self, func, loop):
@@ -15,11 +17,18 @@ class Thread(threading.Thread):
         return self._return
 
     def run(self):
-        self._return = self._func()
+        try:
+            self._return = True, self._func()
+        except Exception as e:  # skipcq: PYL-W0703
+            self._return = False, e
         self._loop.call_soon_threadsafe(self._event.set)
 
 
-async def run_in_thread(func):
-    thread = Thread(func, asyncio.get_running_loop())
+async def run_in_thread(func, *args, **kwargs):
+    thread = Thread(partial(func, *args, **kwargs), asyncio.get_running_loop())
     thread.start()
-    return await thread.wait()
+    ok, result = await thread.wait()
+    if not ok:
+        raise result
+
+    return result
