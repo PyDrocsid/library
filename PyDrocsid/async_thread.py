@@ -32,9 +32,3 @@ async def run_in_thread(func, *args, **kwargs):
         raise result
 
     return result
-
-
-async def run_in_thread(func):
-    thread = Thread(func, asyncio.get_running_loop())
-    thread.start()
-    return await thread.wait()
