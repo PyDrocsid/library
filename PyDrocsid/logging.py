@@ -6,7 +6,7 @@ logging_formatter = logging.Formatter('{asctime} - {levelname} - {name} - {messa
 
 
 class Message:
-    def __init__(self, fmt: str, /, args):
+    def __init__(self, fmt: str, args: tuple):
         self._fmt = fmt
         self._args = args
 
@@ -18,10 +18,10 @@ class LoggingAdapter(logging.LoggerAdapter):
     def __init__(self, logger, extra=None):
         super().__init__(logger, extra or {})
 
-    def log(self, level: int, msg: str, /, *args, error=None, **kwargs):
+    def log(self, level: int, msg: str, *args, error=None, **kwargs):  # skipcq: PYL-W0221
         if self.isEnabledFor(level):
             msg, kwargs = self.process(msg, kwargs)
-            self.logger._log(level, Message(msg, args), (), {})
+            self.logger._log(level, Message(msg, args), (), {})  # skipcq: PYL-W0212
 
         if level >= logging.WARNING and error:
             sentry_sdk.capture_exception(error)
