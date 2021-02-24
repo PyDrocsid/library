@@ -23,9 +23,6 @@ class LoggingAdapter(logging.LoggerAdapter):
             msg, kwargs = self.process(msg, kwargs)
             self.logger._log(level, Message(msg, args), (), {})  # skipcq: PYL-W0212
 
-        if level >= logging.WARNING and error:
-            sentry_sdk.capture_exception(error)
-
 
 def get_logger(name, handler=logging_handler, formatter=logging_formatter, level=logging.INFO):
     logger = LoggingAdapter(logging.getLogger(name))
