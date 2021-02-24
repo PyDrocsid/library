@@ -1,6 +1,8 @@
 import logging
 import sentry_sdk
 
+from sentry_sdk.integrations.logging import ignore_logger
+
 logging_handler = logging.StreamHandler()
 logging_formatter = logging.Formatter('{asctime} - {levelname} - {name} - {message}', style='{')
 
@@ -23,10 +25,16 @@ class LoggingAdapter(logging.LoggerAdapter):
             msg, kwargs = self.process(msg, kwargs)
             self.logger._log(level, Message(msg, args), (), {})  # skipcq: PYL-W0212
 
+        if level >= logging.WARNING and error:
+            sentry_sdk.capture_exception(error)
+
 
 def get_logger(name, handler=logging_handler, formatter=logging_formatter, level=logging.INFO):
+    ignore_logger(name)
+
     logger = LoggingAdapter(logging.getLogger(name))
     handler.setFormatter(formatter)
     logger.logger.addHandler(handler)
     logger.setLevel(level)
+
     return logger
