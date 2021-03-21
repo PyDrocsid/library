@@ -1,0 +1,119 @@
+name: CI
+
+on:
+  - push
+  - pull_request
+
+env:
+  PYTHON_VERSION: 3.9
+
+jobs:
+  codestyle:
+    if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          submodules: recursive
+
+      - name: Set up Python ${{ env.PYTHON_VERSION }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install black
+        run: |
+          pip install --upgrade pip
+          pip install black==20.8b1
+
+      - name: Check code formatting with black
+        run: black -l 120 . --diff --check
+
+  linter:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          submodules: recursive
+
+      - name: Lint with wemake-python-styleguide
+        uses: wemake-services/wemake-python-styleguide@0.15.2
+        with:
+          reporter: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && 'github-pr-review' || 'terminal' }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.github_token }}
+
+  build:
+    if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository }}
+    needs: [ codestyle, linter ]
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          persist-credentials: false
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Setup Python 3.8
+        uses: actions/setup-python@v1
+        with:
+          python-version: 3.8
+
+      - name: Install build dependencies
+        run: |
+          pip install --upgrade pip
+          pip install wheel
+
+      - name: Create Version
+        id: version
+        run: |
+          set -x
+
+          tag=${GITHUB_REF#refs/tags/v}
+
+          if [[ $GITHUB_REF = refs/tags/v* ]]; then
+            version="v$tag"
+          elif [[ $GITHUB_REF = refs/heads/* ]]; then
+            version=$(git describe --tags | sed 's/-/+/')
+          fi
+          version="$(echo $version | tr / -)"
+
+          echo ::set-output name=version::${version}
+
+      - name: Build python package
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: python setup.py sdist bdist_wheel
+
+      - name: Upload Docker Image Archive
+        uses: actions/upload-artifact@v2
+        with:
+          name: build
+          path: dist
+
+  pypi:
+    runs-on: ubuntu-latest
+    needs: [ build ]
+    if: ${{ startsWith(github.ref, 'refs/tags/v') }}
+    environment: pypi
+
+    steps:
+      - name: Download Package
+        uses: actions/download-artifact@v2
+        with:
+          name: build
+          path: dist
+
+      - name: Install Twine
+        run: |
+          pip install --upgrade pip
+          pip install twine
+
+      - name: Upload package to PyPi
+        run: twine upload -u __token__ -p ${{ secrets.PYPI_TOKEN }} dist/*

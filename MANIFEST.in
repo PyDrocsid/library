@@ -1,2 +1,2 @@
 include PyDrocsid/emoji_map.json
-include PyDrocsid/translations/
+include PyDrocsid/translations/*
