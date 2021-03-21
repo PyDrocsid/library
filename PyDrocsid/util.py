@@ -1,11 +1,49 @@
 import io
+import re
 from socket import gethostbyname, socket, AF_INET, SOCK_STREAM, timeout, SHUT_RD
 from time import time
 from typing import Optional, List, Tuple
 
-from discord import Embed, Message, File, Attachment, TextChannel, Member
+from discord import Embed, Message, File, Attachment, TextChannel, Member, PartialEmoji, Forbidden
 from discord.abc import Messageable
-from discord.ext.commands import Command, Context, CommandError, Bot
+from discord.ext.commands import Command, Context, CommandError, Bot, BadArgument, ColorConverter
+
+from PyDrocsid.config import Config
+from PyDrocsid.emojis import name_to_emoji
+from PyDrocsid.material_colors import MaterialColors
+from PyDrocsid.permission import BasePermission
+from PyDrocsid.settings import Settings
+from PyDrocsid.translations import t
+
+t = t.g
+
+
+async def get_prefix() -> str:
+    return await Settings.get(str, "prefix", ".")
+
+
+async def set_prefix(new_prefix: str):
+    await Settings.set(str, "prefix", new_prefix)
+
+
+async def is_teamler(member: Member) -> bool:
+    return await Config.TEAMLER_LEVEL.check_permissions(member)
+
+
+class Color(ColorConverter):
+    async def convert(self, ctx, argument: str) -> Optional[int]:
+        try:
+            return await super().convert(ctx, argument)
+        except BadArgument:
+            pass
+
+        if not re.match(r"^[0-9a-fA-F]{6}$", argument):
+            raise BadArgument(t.invalid_color)
+        return int(argument, 16)
+
+
+def make_error(message) -> Embed:
+    return Embed(title=t.error, colour=MaterialColors.error, description=str(message))
 
 
 async def can_run_command(command: Command, ctx: Context) -> bool:
@@ -15,12 +53,43 @@ async def can_run_command(command: Command, ctx: Context) -> bool:
         return False
 
 
+async def check_wastebasket(
+    message: Message,
+    member: Member,
+    emoji: PartialEmoji,
+    footer: str,
+    permission: BasePermission,
+) -> Optional[int]:
+    if emoji.name != name_to_emoji["wastebasket"]:
+        return None
+
+    for embed in message.embeds:
+        if embed.footer.text == Embed.Empty:
+            continue
+
+        pattern = re.escape(footer).replace("\\{\\}", "{}").format(r".*?#\d{4}", r"(\d+)")  # noqa: P103
+        if (match := re.match("^" + pattern + "$", embed.footer.text)) is None:
+            continue
+
+        author_id = int(match.group(1))
+        if not (author_id == member.id or await permission.check_permissions(member)):
+            try:
+                await message.remove_reaction(emoji, member)
+            except Forbidden:
+                pass
+            return None
+
+        return author_id
+
+    return None
+
+
 def measure_latency() -> Optional[float]:
     host = gethostbyname("discord.com")
     s = socket(AF_INET, SOCK_STREAM)
     s.settimeout(5)
 
-    t = time()
+    now = time()
 
     try:
         s.connect((host, 443))
@@ -28,7 +97,7 @@ def measure_latency() -> Optional[float]:
     except (timeout, OSError):
         return None
 
-    return time() - t
+    return time() - now
 
 
 def calculate_edit_distance(a: str, b: str) -> int:
@@ -56,7 +125,11 @@ def split_lines(text: str, max_size: int, *, first_max_size: Optional[int] = Non
 
 
 async def send_long_embed(
-    channel: Messageable, embed: Embed, *, repeat_title: bool = False, repeat_name: bool = False
+    channel: Messageable,
+    embed: Embed,
+    *,
+    repeat_title: bool = False,
+    repeat_name: bool = False,
 ) -> List[Message]:
     messages = []
     fields = embed.fields.copy()

@@ -1,5 +1,4 @@
 from asyncio import BoundedSemaphore
-from os import environ as env
 from typing import TypeVar, Optional, Union, Iterable, Type, List
 
 from sqlalchemy import create_engine
@@ -10,8 +9,13 @@ from sqlalchemy.ext.declarative import DeclarativeMeta, declarative_base
 from sqlalchemy.orm import sessionmaker, scoped_session, Query, Session
 
 from PyDrocsid.async_thread import run_in_thread
+from PyDrocsid.environment import DB_HOST, DB_PORT, DB_DATABASE, DB_USERNAME, DB_PASSWORD
+from PyDrocsid.logger import get_logger
 
 T = TypeVar("T")
+
+
+logger = get_logger(__name__)
 
 
 class DB:
@@ -31,6 +35,7 @@ class DB:
         self.thread_semaphore = BoundedSemaphore(5)
 
     def create_tables(self):
+        logger.debug("creating tables")
         self.Base.metadata.create_all(bind=self.engine)
 
     def close(self):
@@ -77,9 +82,9 @@ async def db_thread(function, *args, **kwargs):
 
 
 db = DB(
-    hostname=env.get("DB_HOST", "localhost"),
-    port=env.get("DB_PORT", 3306),
-    database=env.get("DB_DATABASE", "test"),
-    username=env.get("DB_USER", "test"),
-    password=env.get("DB_PASSWORD", "test"),
+    hostname=DB_HOST,
+    port=DB_PORT,
+    database=DB_DATABASE,
+    username=DB_USERNAME,
+    password=DB_PASSWORD,
 )

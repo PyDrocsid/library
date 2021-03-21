@@ -21,7 +21,7 @@ from discord import (
     Invite,
 )
 from discord.abc import Messageable
-from discord.ext.commands import Bot, Cog
+from discord.ext.commands import Bot, Context, CommandError
 
 from PyDrocsid.command_edit import handle_command_edit
 from PyDrocsid.multilock import MultiLock
@@ -32,7 +32,8 @@ class StopEventHandling(Exception):
 
 
 async def extract_from_raw_reaction_event(
-    bot: Bot, event: RawReactionActionEvent
+    bot: Bot,
+    event: RawReactionActionEvent,
 ) -> Optional[Tuple[Message, PartialEmoji, Union[User, Member]]]:
     channel: Optional[Messageable] = bot.get_channel(event.channel_id)
     if channel is None:
@@ -210,6 +211,10 @@ class Events:
     async def on_invite_delete(_, invite: Invite):
         await call_event_handlers("invite_delete", invite, identifier=invite.code)
 
+    @staticmethod
+    async def on_command_error(_, ctx: Context, error: CommandError):
+        await call_event_handlers("command_error", ctx, error, identifier=ctx.message.id)
+
 
 event_handlers = {}
 cog_instances = {}
@@ -247,16 +252,3 @@ def register_events(bot: Bot):
             handler = partial(func, bot)
             handler.__name__ = e
             bot.event(handler)
-
-
-def register_cogs(bot: Bot, *cogs):
-    register_events(bot)
-    for cog_class in cogs:
-        if cog_class is None:
-            continue
-        cog: Cog = cog_class(bot)
-        for e in dir(cog):
-            func = getattr(cog, e)
-            if e.startswith("on_") and callable(func):
-                event_handlers.setdefault(e[3:], []).append(func)
-        bot.add_cog(cog)
