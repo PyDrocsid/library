@@ -50,7 +50,7 @@ class Config:
 
 
 def load_version():
-    Config.VERSION = getoutput("cat VERSION 2>/dev/null || git describe").lstrip("v")
+    Config.VERSION = getoutput("cat VERSION 2>/dev/null || git describe --tags --always").lstrip("v")
 
 
 def load_config_file(path: Path):
