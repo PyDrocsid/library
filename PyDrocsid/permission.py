@@ -9,6 +9,8 @@ from discord.ext.commands import check, Context, CheckFailure
 from sqlalchemy import Column, String, Integer
 
 from PyDrocsid.database import db, db_thread
+from PyDrocsid.environment import CACHE_TTL
+from PyDrocsid.redis import redis
 from PyDrocsid.translations import t
 
 permission_override: ContextVar[BasePermissionLevel] = ContextVar("permission_override")
@@ -27,16 +29,23 @@ class PermissionModel(db.Base):
         return row
 
     @staticmethod
-    def get(permission: str, default: int) -> int:
-        if (row := db.get(PermissionModel, permission)) is None:
-            row = PermissionModel.create(permission, default)
+    async def get(permission: str, default: int) -> int:
+        if await redis.exists(rkey := f"permissions:{permission}"):
+            return int(await redis.get(rkey))
+
+        if (row := await db_thread(db.get, PermissionModel, permission)) is None:
+            row = await db_thread(PermissionModel.create, permission, default)
+
+        await redis.setex(rkey, CACHE_TTL, row.level)
 
         return row.level
 
     @staticmethod
-    def set(permission: str, level: int) -> PermissionModel:
-        if (row := db.get(PermissionModel, permission)) is None:
-            return PermissionModel.create(permission, level)
+    async def set(permission: str, level: int) -> PermissionModel:
+        await redis.setex(f"permissions:{permission}", CACHE_TTL, level)
+
+        if (row := await db_thread(db.get, PermissionModel, permission)) is None:
+            return await db_thread(PermissionModel.create, permission, level)
 
         row.level = level
         return row
@@ -67,14 +76,14 @@ class BasePermission(Enum):
     async def resolve(self) -> BasePermissionLevel:
         from PyDrocsid.config import Config
 
-        value: int = await db_thread(PermissionModel.get, self.fullname, self._default_level.level)
+        value: int = await PermissionModel.get(self.fullname, self._default_level.level)
         for level in Config.PERMISSION_LEVELS:  # type: BasePermissionLevel
             if level.level == value:
                 return level
         raise ValueError(f"permission level not found: {value}")
 
     async def set(self, level: BasePermissionLevel):
-        await db_thread(PermissionModel.set, self.fullname, level.level)
+        await PermissionModel.set(self.fullname, level.level)
 
     async def check_permissions(self, member: Union[Member, User]) -> bool:
         return await (await self.resolve()).check_permissions(member)
