@@ -6,6 +6,8 @@ from typing import Union, Optional, Type, TypeVar
 from sqlalchemy import Column, String
 
 from PyDrocsid.database import db, db_thread
+from PyDrocsid.environment import CACHE_TTL
+from PyDrocsid.redis import redis
 
 T = TypeVar("T")
 
@@ -26,25 +28,33 @@ class SettingsModel(db.Base):
         return row
 
     @staticmethod
-    def get(dtype: Type[T], key: str, default: Optional[T] = None) -> Optional[T]:
-        if (row := db.get(SettingsModel, key)) is None:
-            if default is None:
-                return None
-            row = SettingsModel._create(key, default)
+    async def get(dtype: Type[T], key: str, default: Optional[T] = None) -> Optional[T]:
+        if await redis.exists(rkey := f"settings:{key}"):
+            out: str = await redis.get(rkey)
+        else:
+            if (row := await db_thread(db.get, SettingsModel, key)) is None:
+                if default is None:
+                    return None
+                row = await db_thread(SettingsModel._create, key, default)
+            out: str = row.value
+            await redis.setex(rkey, CACHE_TTL, out)
 
-        out: str = row.value
         if dtype == bool:
             out: int = int(out)
         return dtype(out)
 
     @staticmethod
-    def set(dtype: Type[T], key: str, value: T) -> SettingsModel:
-        if (row := db.get(SettingsModel, key)) is None:
-            return SettingsModel._create(key, value)
+    async def set(dtype: Type[T], key: str, value: T) -> SettingsModel:
+        rkey = f"settings:{key}"
+        if (row := await db_thread(db.get, SettingsModel, key)) is None:
+            row = SettingsModel._create(key, value)
+            await redis.setex(rkey, CACHE_TTL, row.value)
+            return row
 
         if dtype == bool:
             value = int(value)
         row.value = str(value)
+        await redis.setex(rkey, CACHE_TTL, row.value)
         return row
 
 
@@ -66,10 +76,10 @@ class Settings(NoAliasEnum):
         return type(self.default)
 
     async def get(self) -> T:
-        return await db_thread(SettingsModel.get, self.type, self.fullname, self.default)
+        return await SettingsModel.get(self.type, self.fullname, self.default)
 
     async def set(self, value: T) -> T:
-        await db_thread(SettingsModel.set, self.type, self.fullname, value)
+        await SettingsModel.set(self.type, self.fullname, value)
         return value
 
     async def reset(self) -> T:
@@ -79,9 +89,9 @@ class Settings(NoAliasEnum):
 class RoleSettings:
     @staticmethod
     async def get(name: str) -> int:
-        return await db_thread(SettingsModel.get, int, f"role:{name}", -1)
+        return await SettingsModel.get(int, f"role:{name}", -1)
 
     @staticmethod
     async def set(name: str, role_id: int) -> int:
-        await db_thread(SettingsModel.set, int, f"role:{name}", role_id)
+        await SettingsModel.set(int, f"role:{name}", role_id)
         return role_id
