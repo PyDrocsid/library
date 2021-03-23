@@ -18,12 +18,16 @@ from PyDrocsid.translations import t
 t = t.g
 
 
+class GlobalSettings(Settings):
+    prefix = "."
+
+
 async def get_prefix() -> str:
-    return await Settings.get(str, "prefix", ".")
+    return await GlobalSettings.prefix.get()
 
 
 async def set_prefix(new_prefix: str):
-    await Settings.set(str, "prefix", new_prefix)
+    await GlobalSettings.prefix.set(new_prefix)
 
 
 async def is_teamler(member: Member) -> bool:

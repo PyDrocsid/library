@@ -8,7 +8,7 @@ import yaml
 from discord import Member, User
 
 from PyDrocsid.permission import BasePermissionLevel, BasePermission
-from PyDrocsid.settings import Settings
+from PyDrocsid.settings import RoleSettings
 from PyDrocsid.translations import Translations
 
 
@@ -83,7 +83,7 @@ def load_config_file(path: Path):
         roles = {role.id for role in member.roles}
 
         async def has_role(role_name):
-            return await Settings.get(int, role_name + "_role") in roles
+            return await RoleSettings.get(role_name) in roles
 
         for k, v in permission_levels.items():
             if any(getattr(member.guild_permissions, p) for p in v["if"].get("permissions", [])):
