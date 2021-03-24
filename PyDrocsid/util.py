@@ -2,14 +2,16 @@ import io
 import re
 from socket import gethostbyname, socket, AF_INET, SOCK_STREAM, timeout, SHUT_RD
 from time import time
-from typing import Optional, List, Tuple
+from typing import Optional, List, Tuple, Union
 
 from discord import Embed, Message, File, Attachment, TextChannel, Member, PartialEmoji, Forbidden
 from discord.abc import Messageable
 from discord.ext.commands import Command, Context, CommandError, Bot, BadArgument, ColorConverter
 
+from PyDrocsid.command_edit import link_response
 from PyDrocsid.config import Config
 from PyDrocsid.emojis import name_to_emoji
+from PyDrocsid.environment import REPLY, MENTION_AUTHOR
 from PyDrocsid.material_colors import MaterialColors
 from PyDrocsid.permission import BasePermission
 from PyDrocsid.settings import Settings
@@ -142,7 +144,7 @@ async def send_long_embed(
     *parts, last = split_lines(embed.description or "", 2048) or [""]
     for part in parts:
         cur.description = part
-        messages.append(await channel.send(embed=cur))
+        messages.append(await reply(channel, embed=cur))
         if not repeat_title:
             cur.title = ""
             cur.remove_author()
@@ -154,7 +156,7 @@ async def send_long_embed(
         first_max_size = min(1024 if name or cur.fields or cur.description else 2048, 6000 - len(cur))
         *parts, last = split_lines(value, 2048, first_max_size=first_max_size)
         if len(cur.fields) >= 25 or len(cur) + len(name or "** **") + len(parts[0] if parts else last) > 6000:
-            messages.append(await channel.send(embed=cur))
+            messages.append(await reply(channel, embed=cur))
             if not repeat_title:
                 cur.title = ""
                 cur.remove_author()
@@ -166,7 +168,7 @@ async def send_long_embed(
                 cur.add_field(name=name or "** **", value=part, inline=False)
             else:
                 cur.description = part
-            messages.append(await channel.send(embed=cur))
+            messages.append(await reply(channel, embed=cur))
             if not repeat_title:
                 cur.title = ""
                 cur.remove_author()
@@ -178,7 +180,7 @@ async def send_long_embed(
             cur.add_field(name=name or "** **", value=last, inline=inline and not parts)
         else:
             cur.description = last
-    messages.append(await channel.send(embed=cur))
+    messages.append(await reply(channel, embed=cur))
     return messages
 
 
@@ -241,3 +243,15 @@ async def send_editable_log(
     embed = Embed(title=title, description=description, colour=colour if colour is not None else 0x008080)
     embed.add_field(name=name, value=value, inline=inline)
     await channel.send(embed=embed)
+
+
+async def reply(ctx: Union[Context, Message, Messageable], *args, no_reply: bool = False, **kwargs) -> Message:
+    if REPLY and isinstance(ctx, (Context, Message)) and not no_reply:
+        msg = await ctx.reply(*args, **kwargs, mention_author=MENTION_AUTHOR)
+    else:
+        msg = await (ctx.channel if isinstance(ctx, Message) else ctx).send(*args, **kwargs)
+
+    if isinstance(ctx, (Context, Message)):
+        await link_response(ctx, msg)
+
+    return msg
