@@ -23,7 +23,7 @@ from discord import (
 from discord.abc import Messageable
 from discord.ext.commands import Bot, Context, CommandError
 
-from PyDrocsid.command_edit import handle_command_edit
+from PyDrocsid.command_edit import handle_delete, handle_edit
 from PyDrocsid.multilock import MultiLock
 
 
@@ -86,20 +86,22 @@ class Events:
         await bot.process_commands(message)
 
     @staticmethod
-    async def on_message_delete(_, message: Message):
+    async def on_message_delete(bot: Bot, message: Message):
         await call_event_handlers("message_delete", message, identifier=message.id)
+        await handle_delete(bot, message.channel.id, message.id)
 
     @staticmethod
-    async def on_raw_message_delete(_, event: RawMessageDeleteEvent):
+    async def on_raw_message_delete(bot: Bot, event: RawMessageDeleteEvent):
         if event.cached_message is not None:
             return
 
         await call_event_handlers("raw_message_delete", event, identifier=event.message_id)
+        await handle_delete(bot, event.channel_id, event.message_id)
 
     @staticmethod
     async def on_message_edit(bot: Bot, before: Message, after: Message):
         await call_event_handlers("message_edit", before, after, identifier=after.id)
-        await handle_command_edit(bot, after)
+        await handle_edit(bot, after)
 
     @staticmethod
     async def on_raw_message_edit(bot: Bot, event: RawMessageUpdateEvent):
@@ -123,7 +125,7 @@ class Events:
         await call_event_handlers("raw_message_edit", identifier=event.message_id, prepare=prepare)
 
         if prepared:
-            await handle_command_edit(bot, prepared[0])
+            await handle_edit(bot, prepared[0])
 
     @staticmethod
     async def on_raw_reaction_add(bot: Bot, event: RawReactionActionEvent):

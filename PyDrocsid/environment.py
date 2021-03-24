@@ -20,3 +20,4 @@ REDIS_PORT: int = int(getenv("REDIS_PORT", "6379"))
 REDIS_DB: int = int(getenv("REDIS_DB", "0"))
 
 CACHE_TTL: int = int(getenv("CACHE_TTL", 8 * 60 * 60))
+RESPONSE_LINK_TTL: int = int(getenv("RESPONSE_LINK_TTL", 2 * 60 * 60))
