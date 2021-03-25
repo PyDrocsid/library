@@ -24,6 +24,7 @@ from discord.abc import Messageable
 from discord.ext.commands import Bot, Context, CommandError
 
 from PyDrocsid.command_edit import handle_delete, handle_edit
+from PyDrocsid.database import db_wrapper
 from PyDrocsid.multilock import MultiLock
 
 
@@ -251,6 +252,6 @@ def register_events(bot: Bot):
     for e in dir(Events):
         func = getattr(Events, e)
         if e.startswith("on_") and callable(func):
-            handler = partial(func, bot)
+            handler = partial(db_wrapper(func), bot)
             handler.__name__ = e
             bot.event(handler)

@@ -5,7 +5,7 @@ from typing import Union, Optional, Type, TypeVar
 
 from sqlalchemy import Column, String
 
-from PyDrocsid.database import db, db_thread
+from PyDrocsid.database import db, select
 from PyDrocsid.environment import CACHE_TTL
 from PyDrocsid.redis import redis
 
@@ -19,12 +19,12 @@ class SettingsModel(db.Base):
     value: Union[Column, str] = Column(String(256))
 
     @staticmethod
-    def _create(key: str, value: Union[str, int, float, bool]) -> SettingsModel:
+    async def _create(key: str, value: Union[str, int, float, bool]) -> SettingsModel:
         if isinstance(value, bool):
             value = int(value)
 
         row = SettingsModel(key=key, value=str(value))
-        db.add(row)
+        await db.add(row)
         return row
 
     @staticmethod
@@ -32,10 +32,10 @@ class SettingsModel(db.Base):
         if await redis.exists(rkey := f"settings:{key}"):
             out: str = await redis.get(rkey)
         else:
-            if (row := await db_thread(db.get, SettingsModel, key)) is None:
+            if (row := await db.first(select(SettingsModel).filter_by(key=key))) is None:
                 if default is None:
                     return None
-                row = await db_thread(SettingsModel._create, key, default)
+                row = await SettingsModel._create(key, default)
             out: str = row.value
             await redis.setex(rkey, CACHE_TTL, out)
 
@@ -46,8 +46,8 @@ class SettingsModel(db.Base):
     @staticmethod
     async def set(dtype: Type[T], key: str, value: T) -> SettingsModel:
         rkey = f"settings:{key}"
-        if (row := await db_thread(db.get, SettingsModel, key)) is None:
-            row = SettingsModel._create(key, value)
+        if (row := await db.first(select(SettingsModel).filter_by(key=key))) is None:
+            row = await SettingsModel._create(key, value)
             await redis.setex(rkey, CACHE_TTL, row.value)
             return row
 
