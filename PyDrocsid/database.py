@@ -13,7 +13,6 @@ from sqlalchemy.sql.expression import exists as sa_exists, delete as sa_delete, 
 from sqlalchemy.sql.functions import count
 from sqlalchemy.sql.selectable import Exists
 
-from PyDrocsid.logger import get_logger
 from PyDrocsid.environment import (
     DB_DRIVER,
     DB_HOST,
@@ -22,7 +21,11 @@ from PyDrocsid.environment import (
     DB_USERNAME,
     DB_PASSWORD,
     SQL_SHOW_STATEMENTS,
+    POOL_RECYCLE,
+    POOL_SIZE,
+    MAX_OVERFLOW,
 )
+from PyDrocsid.logger import get_logger
 
 T = TypeVar("T")
 
@@ -67,6 +70,9 @@ class DB:
         database: str,
         username: str,
         password: str,
+        pool_recycle: int = 300,
+        pool_size: int = 20,
+        max_overflow: int = 20,
         echo: bool = False,
     ):
         """
@@ -89,9 +95,9 @@ class DB:
                 database=database,
             ),
             pool_pre_ping=True,
-            pool_recycle=300,
-            pool_size=10,
-            max_overflow=20,
+            pool_recycle=pool_recycle,
+            pool_size=pool_size,
+            max_overflow=max_overflow,
             echo=echo,
         )
 
@@ -203,6 +209,9 @@ def get_database() -> DB:
         database=DB_DATABASE,
         username=DB_USERNAME,
         password=DB_PASSWORD,
+        pool_recycle=POOL_RECYCLE,
+        pool_size=POOL_SIZE,
+        max_overflow=MAX_OVERFLOW,
         echo=SQL_SHOW_STATEMENTS,
     )
 

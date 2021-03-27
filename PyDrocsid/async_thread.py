@@ -1,5 +1,6 @@
 import asyncio
 import threading
+from asyncio import Semaphore
 
 from functools import partial
 
@@ -32,3 +33,13 @@ async def run_in_thread(func, *args, **kwargs):
         raise result
 
     return result
+
+
+async def semaphore_gather(n, *tasks):
+    semaphore = Semaphore(n)
+
+    async def inner(t):
+        async with semaphore:
+            return await t
+
+    return await asyncio.gather(*map(inner, tasks))
