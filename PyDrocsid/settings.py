@@ -5,7 +5,7 @@ from typing import Union, Optional, Type, TypeVar
 
 from sqlalchemy import Column, String
 
-from PyDrocsid.database import db, select
+from PyDrocsid.database import db
 from PyDrocsid.environment import CACHE_TTL
 from PyDrocsid.redis import redis
 
@@ -32,7 +32,7 @@ class SettingsModel(db.Base):
         if await redis.exists(rkey := f"settings:{key}"):
             out: str = await redis.get(rkey)
         else:
-            if (row := await db.first(select(SettingsModel).filter_by(key=key))) is None:
+            if (row := await db.get(SettingsModel, key=key)) is None:
                 if default is None:
                     return None
                 row = await SettingsModel._create(key, default)
@@ -46,7 +46,7 @@ class SettingsModel(db.Base):
     @staticmethod
     async def set(dtype: Type[T], key: str, value: T) -> SettingsModel:
         rkey = f"settings:{key}"
-        if (row := await db.first(select(SettingsModel).filter_by(key=key))) is None:
+        if (row := await db.get(SettingsModel, key=key)) is None:
             row = await SettingsModel._create(key, value)
             await redis.setex(rkey, CACHE_TTL, row.value)
             return row

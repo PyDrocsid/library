@@ -8,7 +8,7 @@ from discord import Member, User
 from discord.ext.commands import check, Context, CheckFailure
 from sqlalchemy import Column, String, Integer
 
-from PyDrocsid.database import db, select
+from PyDrocsid.database import db
 from PyDrocsid.environment import CACHE_TTL
 from PyDrocsid.redis import redis
 from PyDrocsid.translations import t
@@ -33,7 +33,7 @@ class PermissionModel(db.Base):
         if await redis.exists(rkey := f"permissions:{permission}"):
             return int(await redis.get(rkey))
 
-        if (row := await db.first(select(PermissionModel).filter_by(permission=permission))) is None:
+        if (row := await db.get(PermissionModel, permission=permission)) is None:
             row = await PermissionModel.create(permission, default)
 
         await redis.setex(rkey, CACHE_TTL, row.level)
@@ -44,7 +44,7 @@ class PermissionModel(db.Base):
     async def set(permission: str, level: int) -> PermissionModel:
         await redis.setex(f"permissions:{permission}", CACHE_TTL, level)
 
-        if (row := await db.first(select(PermissionModel).filter_by(permission=permission))) is None:
+        if (row := await db.get(PermissionModel, permission=permission)) is None:
             return await PermissionModel.create(permission, level)
 
         row.level = level

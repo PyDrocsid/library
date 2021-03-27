@@ -1,6 +1,7 @@
 from contextlib import asynccontextmanager
 from contextvars import ContextVar
-from typing import TypeVar, Optional
+from functools import wraps
+from typing import TypeVar, Optional, Type
 
 # noinspection PyProtectedMember
 from sqlalchemy.engine import URL
@@ -8,7 +9,7 @@ from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, AsyncEngin
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.future import select as sa_select, Select
 from sqlalchemy.sql import Executable
-from sqlalchemy.sql.expression import exists as sa_exists
+from sqlalchemy.sql.expression import exists as sa_exists, delete as sa_delete, Delete
 from sqlalchemy.sql.functions import count
 from sqlalchemy.sql.selectable import Exists
 
@@ -34,10 +35,18 @@ def select(*entities, **kwargs) -> Select:
     return sa_select(*entities, **kwargs)
 
 
+def filter_by(cls, **kwargs) -> Select:
+    return select(cls).filter_by(**kwargs)
+
+
 def exists(*entities, **kwargs) -> Exists:
     """Shortcut for :meth:`sqlalchemy.future.select`"""
 
     return sa_exists(*entities, **kwargs)
+
+
+def delete(table) -> Delete:
+    return sa_delete(table)
 
 
 class DB:
@@ -123,6 +132,9 @@ class DB:
     async def stream(self, statement: Executable, *args, **kwargs):
         return (await self.session.stream(statement, *args, **kwargs)).scalars()
 
+    async def all(self, statement: Executable, *args, **kwargs) -> list[T]:
+        return [x async for x in await self.stream(statement, *args, **kwargs)]
+
     async def first(self, *args, **kwargs):
         return (await self.exec(*args, **kwargs)).scalar()
 
@@ -131,6 +143,9 @@ class DB:
 
     async def count(self, *args, **kwargs):
         return await self.first(select(count()).select_from(*args, **kwargs))
+
+    async def get(self, cls: Type[T], **kwargs) -> Optional[T]:
+        return await self.first(filter_by(cls, **kwargs))
 
     async def commit(self):
         """Shortcut for :meth:`sqlalchemy.ext.asyncio.AsyncSession.commit`"""
@@ -166,6 +181,7 @@ async def db_context():
 
 
 def db_wrapper(f):
+    @wraps(f)
     async def inner(*args, **kwargs):
         async with db_context():
             return await f(*args, **kwargs)
