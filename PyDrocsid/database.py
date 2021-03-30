@@ -1,6 +1,6 @@
 from contextlib import asynccontextmanager
 from contextvars import ContextVar
-from functools import wraps
+from functools import wraps, partial
 from typing import TypeVar, Optional, Type
 
 # noinspection PyProtectedMember
@@ -106,9 +106,12 @@ class DB:
         self._session: ContextVar[Optional[AsyncSession]] = ContextVar("session", default=None)
 
     async def create_tables(self):
+        from PyDrocsid.config import get_subclasses_in_enabled_packages
+
         logger.debug("creating tables")
+        tables = [cls.__table__ for cls in get_subclasses_in_enabled_packages(self.Base)]
         async with self.engine.begin() as conn:
-            await conn.run_sync(self.Base.metadata.create_all)
+            await conn.run_sync(partial(self.Base.metadata.create_all, tables=tables))
 
     async def add(self, obj: T) -> T:
         """

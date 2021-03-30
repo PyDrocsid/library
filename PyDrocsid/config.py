@@ -1,15 +1,19 @@
+import sys
 from collections import Counter
 from os import getenv
 from pathlib import Path
 from subprocess import getoutput  # noqa: S404
-from typing import Type, Union
+from typing import Type, Union, TypeVar
 
 import yaml
 from discord import Member, User
 
-from PyDrocsid.permission import BasePermissionLevel, BasePermission
+from PyDrocsid.permission import BasePermissionLevel
 from PyDrocsid.settings import RoleSettings
 from PyDrocsid.translations import Translations
+
+
+T = TypeVar("T")
 
 
 class Contributor:
@@ -45,8 +49,15 @@ class Config:
     PERMISSION_LEVELS: Type[BasePermissionLevel]
     DEFAULT_PERMISSION_LEVEL: BasePermissionLevel
     DEFAULT_PERMISSION_OVERRIDES: dict[str, dict[str, BasePermissionLevel]] = {}
-    PERMISSIONS: list[BasePermission] = []
     TEAMLER_LEVEL: BasePermissionLevel
+
+    ENABLED_COG_PACKAGES: set[str] = {"PyDrocsid"}
+
+
+def get_subclasses_in_enabled_packages(base: Type[T]) -> list[Type[T]]:
+    return [
+        cls for cls in base.__subclasses__() if sys.modules[cls.__module__].__package__ in Config.ENABLED_COG_PACKAGES
+    ]
 
 
 def load_version():

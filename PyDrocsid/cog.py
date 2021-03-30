@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import sys
 from datetime import datetime
 from os import getenv
 from typing import Union, Type, Optional
@@ -20,14 +21,12 @@ from discord.ext.commands import Cog as DiscordCog, Bot, Context, CommandError
 from PyDrocsid.config import Config, Contributor
 from PyDrocsid.events import register_events, event_handlers
 from PyDrocsid.logger import get_logger
-from PyDrocsid.permission import BasePermission
 
 logger = get_logger(__name__)
 
 
 class Cog(DiscordCog):
     CONTRIBUTORS: list[Contributor]
-    PERMISSIONS: Type[BasePermission]
     DEPENDENCIES: list[Type[Cog]] = []
 
     instance: Optional[Cog] = None
@@ -159,7 +158,7 @@ def register_cogs(bot: Bot, *cogs: Cog):
                 event_handlers.setdefault(e[3:], []).append(func)
         bot.add_cog(cog)
         Config.CONTRIBUTORS.update(cog.CONTRIBUTORS)
-        Config.PERMISSIONS += cog.PERMISSIONS
+        Config.ENABLED_COG_PACKAGES.add(sys.modules[cog.__module__].__package__)
 
 
 def load_cogs(bot: Bot, *cogs: Cog):
