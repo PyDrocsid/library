@@ -5,6 +5,7 @@ from typing import Union, Optional, Type, TypeVar
 
 from sqlalchemy import Column, String
 
+from PyDrocsid.async_thread import LockDeco
 from PyDrocsid.database import db
 from PyDrocsid.environment import CACHE_TTL
 from PyDrocsid.redis import redis
@@ -28,6 +29,7 @@ class SettingsModel(db.Base):
         return row
 
     @staticmethod
+    @LockDeco
     async def get(dtype: Type[T], key: str, default: Optional[T] = None) -> Optional[T]:
         if await redis.exists(rkey := f"settings:{key}"):
             out: str = await redis.get(rkey)
@@ -44,6 +46,7 @@ class SettingsModel(db.Base):
         return dtype(out)
 
     @staticmethod
+    @LockDeco
     async def set(dtype: Type[T], key: str, value: T) -> SettingsModel:
         rkey = f"settings:{key}"
         if (row := await db.get(SettingsModel, key=key)) is None:
