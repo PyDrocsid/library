@@ -4,7 +4,7 @@ from socket import gethostbyname, socket, AF_INET, SOCK_STREAM, timeout, SHUT_RD
 from time import time
 from typing import Optional, List, Tuple, Union
 
-from discord import Embed, Message, File, Attachment, TextChannel, Member, PartialEmoji, Forbidden
+from discord import Embed, Message, File, Attachment, TextChannel, Member, PartialEmoji, Forbidden, Role, Guild
 from discord.abc import Messageable
 from discord.ext.commands import Command, Context, CommandError, Bot, BadArgument, ColorConverter
 
@@ -255,3 +255,17 @@ async def reply(ctx: Union[Context, Message, Messageable], *args, no_reply: bool
         await link_response(ctx, msg)
 
     return msg
+
+
+def check_role_assignable(role: Role):
+    guild: Guild = role.guild
+    me: Member = guild.me
+
+    if not me.guild_permissions.manage_roles:
+        raise CommandError(t.role_assignment_error.no_permissions)
+    if role > me.top_role:
+        raise CommandError(t.role_assignment_error.higher(role, me.top_role))
+    if role == me.top_role:
+        raise CommandError(t.role_assignment_error.highest(role))
+    if role.managed or role == guild.default_role:
+        raise CommandError(t.role_assignment_error.managed_role(role))
