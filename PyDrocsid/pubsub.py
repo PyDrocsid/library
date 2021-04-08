@@ -1,5 +1,8 @@
 import asyncio
+import sys
 from typing import Awaitable, Callable
+
+from PyDrocsid.config import Config
 
 
 class PubSubChannel:
@@ -23,7 +26,10 @@ class PubSubChannel:
                 self._cls = None
 
             async def __call__(self, *args, **kwargs):
-                if self._cls.instance is not None:
+                if not self._cls.instance:
+                    return
+
+                if sys.modules[self._cls.__module__].__package__ in Config.ENABLED_COG_PACKAGES:
                     return await self._func(self._cls.instance, *args, **kwargs)
 
             def __set_name__(self, owner, name):

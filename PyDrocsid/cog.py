@@ -36,6 +36,13 @@ class Cog(DiscordCog):
         if cls.instance is None:
             cls.instance = super().__new__(cls, *args, **kwargs)
 
+            c: Type[Cog]
+            for c in cls.mro():
+                if c is Cog:
+                    break
+
+                c.instance = c.instance or cls.instance
+
         return cls.instance
 
     @staticmethod
@@ -157,8 +164,14 @@ def register_cogs(bot: Bot, *cogs: Cog):
             if e.startswith("on_") and callable(func) and getattr(type(cog), e) is not getattr(Cog, e):
                 event_handlers.setdefault(e[3:], []).append(func)
         bot.add_cog(cog)
-        Config.CONTRIBUTORS.update(cog.CONTRIBUTORS)
-        Config.ENABLED_COG_PACKAGES.add(sys.modules[cog.__module__].__package__)
+
+        cls: Type[Cog]
+        for cls in cog.__class__.mro():
+            if cls is Cog:
+                break
+
+            Config.CONTRIBUTORS.update(cls.CONTRIBUTORS)
+            Config.ENABLED_COG_PACKAGES.add(sys.modules[cls.__module__].__package__)
 
 
 def load_cogs(bot: Bot, *cogs: Cog):
