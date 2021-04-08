@@ -113,5 +113,18 @@ class Translations:
         return self._namespaces[item]
 
 
+def load_translations(path: Path, prio: int = 0):
+    if path.name.startswith("."):
+        return
+
+    if (p := path.joinpath("translations")).is_dir():
+        t.register_namespace(path.name, p, prio=prio)
+        return
+
+    for p in path.iterdir():
+        if p.is_dir() and not p.name.startswith("_"):
+            load_translations(p, prio)
+
+
 t = Translations()
 t.register_namespace("g", Path(__file__).parent.joinpath("translations"))
