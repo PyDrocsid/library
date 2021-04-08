@@ -10,6 +10,14 @@ from PyDrocsid.logger import get_logger
 logger = get_logger(__name__)
 
 
+def merge(base: dict, src: dict):
+    for k, v in src.items():
+        if k not in base or not isinstance(v, dict) or not isinstance(base[k], dict):
+            base[k] = v
+        else:
+            merge(base[k], v)
+
+
 class _FormatString(str):
     __call__ = str.format
 
@@ -61,7 +69,7 @@ class _Namespace:
                     continue
 
                 with path.open() as file:
-                    self._translations[lang] |= yaml.safe_load(file)
+                    merge(self._translations[lang], yaml.safe_load(file) or {})
 
         return self._translations[lang]
 
