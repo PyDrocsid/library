@@ -24,6 +24,14 @@ class GlobalSettings(Settings):
     prefix = "."
 
 
+def docs(text: str):
+    def deco(f):
+        f.__doc__ = text
+        return f
+
+    return deco
+
+
 async def get_prefix() -> str:
     return await GlobalSettings.prefix.get()
 
