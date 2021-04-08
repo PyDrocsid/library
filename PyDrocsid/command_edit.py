@@ -26,6 +26,9 @@ async def link_response(msg: Union[Message, Context], *response_messages: Messag
 
 
 async def handle_edit(bot: Bot, message: Message):
+    if message.author.bot:
+        return
+
     await handle_delete(bot, message.channel.id, message.id)
     for reaction in message.reactions:
         if reaction.me:

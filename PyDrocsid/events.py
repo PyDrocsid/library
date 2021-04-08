@@ -102,7 +102,9 @@ class Events:
     @staticmethod
     async def on_message_edit(bot: Bot, before: Message, after: Message):
         await call_event_handlers("message_edit", before, after, identifier=after.id)
-        await handle_edit(bot, after)
+
+        if before.content != after.content:
+            await handle_edit(bot, after)
 
     @staticmethod
     async def on_raw_message_edit(bot: Bot, event: RawMessageUpdateEvent):
