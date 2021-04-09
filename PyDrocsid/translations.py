@@ -40,12 +40,13 @@ class _PluralDict(dict):
         return translation(*args, **kwargs)
 
     def __getattr__(self, item):
-        value = self[item]
+        value = self[item] if item in self else self._fallback[item]
 
         if isinstance(value, str):
-            return _FormatString(value)
+            value = _FormatString(value)
         elif isinstance(value, dict):
-            return _PluralDict(value)
+            value = _PluralDict(value)
+            value._fallback = self._fallback[item]
 
         return value
 
@@ -85,9 +86,10 @@ class _Namespace:
         value = self._get_translation(item)
 
         if isinstance(value, str):
-            return _FormatString(value)
+            value = _FormatString(value)
         elif isinstance(value, dict):
-            return _PluralDict(value)
+            value = _PluralDict(value)
+            value._fallback = self._get_language(Translations.FALLBACK)[item]
 
         return value
 
