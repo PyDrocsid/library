@@ -56,12 +56,12 @@ class Color(ColorConverter):
         return int(argument, 16)
 
 
-def make_error(message, user: Optional[User] = None) -> Embed:
+def make_error(message, user: Union[Member, User, None] = None) -> Embed:
     embed = Embed(title=t.error, colour=MaterialColors.error, description=str(message))
 
     if user:
         embed.set_author(
-            name=user.display_name,
+            name=str(user),
             icon_url=user.avatar_url_as(format=("gif" if user.is_avatar_animated() else "png")),
         )
 
