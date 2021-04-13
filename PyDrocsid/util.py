@@ -4,7 +4,7 @@ from socket import gethostbyname, socket, AF_INET, SOCK_STREAM, timeout, SHUT_RD
 from time import time
 from typing import Optional, List, Tuple, Union
 
-from discord import Embed, Message, File, Attachment, TextChannel, Member, PartialEmoji, Forbidden, Role, Guild
+from discord import Embed, Message, File, Attachment, TextChannel, Member, User, PartialEmoji, Forbidden, Role, Guild
 from discord.abc import Messageable
 from discord.ext.commands import Command, Context, CommandError, Bot, BadArgument, ColorConverter
 
@@ -56,8 +56,16 @@ class Color(ColorConverter):
         return int(argument, 16)
 
 
-def make_error(message) -> Embed:
-    return Embed(title=t.error, colour=MaterialColors.error, description=str(message))
+def make_error(message, user: Optional[Member, User]=None) -> Embed:
+    if user:
+        embed = Embed(title=t.error, colour=MaterialColors.error, description=str(message))
+        embed.set_author(
+            name=user.display_name,
+            icon_url=user.avatar_url_as(format=("gif" if user.is_avatar_animated() else "png")),
+        )
+        return embed
+    else:
+        return Embed(title=t.error, colour=MaterialColors.error, description=str(message))
 
 
 async def can_run_command(command: Command, ctx: Context) -> bool:
