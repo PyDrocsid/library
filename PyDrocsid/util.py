@@ -56,7 +56,7 @@ class Color(ColorConverter):
         return int(argument, 16)
 
 
-def make_error(message, user: Optional[Member, User]=None) -> Embed:
+def make_error(message, user: Optional[Member, User] = None) -> Embed:
     if user:
         embed = Embed(title=t.error, colour=MaterialColors.error, description=str(message))
         embed.set_author(
