@@ -39,6 +39,11 @@ class _PluralDict(dict):
 
         return translation(*args, **kwargs)
 
+    def __getattribute__(self, item: str):
+        if item.startswith("_"):
+            return super().__getattribute__(item)
+        return self.__getattr__(item)
+
     def __getattr__(self, item):
         value = self[item] if item in self else self._fallback[item]
 
