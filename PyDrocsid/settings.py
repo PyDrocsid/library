@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import sys
+
 from aenum import NoAliasEnum
 from typing import Union, Optional, Type, TypeVar
 
@@ -64,7 +66,7 @@ class SettingsModel(db.Base):
 class Settings(NoAliasEnum):
     @property
     def cog(self) -> str:
-        return self.__class__.__name__.lower().removesuffix("settings")
+        return sys.modules[self.__class__.__module__].__package__.split(".")[-1]
 
     @property
     def fullname(self) -> str:
