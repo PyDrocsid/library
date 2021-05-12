@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import sys
 from contextvars import ContextVar
 from enum import Enum
 from typing import Union
@@ -58,7 +59,7 @@ class BasePermission(Enum):
 
     @property
     def cog(self) -> str:
-        return self.__class__.__name__.lower().removesuffix("permission")
+        return sys.modules[self.__class__.__module__].__package__.split(".")[-1]
 
     @property
     def fullname(self) -> str:
