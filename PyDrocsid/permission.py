@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import sys
+from collections import namedtuple
 from contextvars import ContextVar
 from enum import Enum
 from typing import Union
@@ -94,18 +95,21 @@ class BasePermission(Enum):
         return check_permission_level(self)
 
 
+PermissionLevel = namedtuple("PermissionLevel", ["level", "aliases", "description"])
+
+
 class BasePermissionLevel(Enum):
     @property
     def level(self) -> int:
-        return self.value[0]
+        return self.value.level
 
     @property
     def aliases(self) -> list[str]:
-        return self.value[1]
+        return self.value.aliases
 
     @property
     def description(self) -> str:
-        return self.value[2]
+        return self.value.description
 
     @classmethod
     async def get_permission_level(cls, member: Union[Member, User]) -> BasePermissionLevel:
@@ -120,7 +124,7 @@ class BasePermissionLevel(Enum):
 
     async def check_permissions(self, member: Union[Member, User]) -> bool:
         level: BasePermissionLevel = await self.get_permission_level(member)
-        return level.value >= self.value  # skipcq: PYL-W0143
+        return level.level >= self.level  # skipcq: PYL-W0143
 
     @property
     def check(self):

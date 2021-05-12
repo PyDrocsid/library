@@ -8,7 +8,7 @@ from typing import Type, Union, TypeVar
 import yaml
 from discord import Member, User
 
-from PyDrocsid.permission import BasePermissionLevel
+from PyDrocsid.permission import BasePermissionLevel, PermissionLevel
 from PyDrocsid.settings import RoleSettings
 from PyDrocsid.translations import Translations
 
@@ -109,9 +109,13 @@ def load_config_file(path: Path):
     Config.PERMISSION_LEVELS = BasePermissionLevel(
         "PermissionLevel",
         {
-            **{k.upper(): (v["level"], v["aliases"], v["name"]) for k, v in permission_levels.items()},
-            "PUBLIC": (0, ["public", "p"], "Public"),
-            "OWNER": (next(iter(permission_levels.values()), {"level": 0})["level"] + 1, ["owner", "o"], "Owner"),
+            **{k.upper(): PermissionLevel(v["level"], v["aliases"], v["name"]) for k, v in permission_levels.items()},
+            "PUBLIC": PermissionLevel(0, ["public", "p"], "Public"),
+            "OWNER": PermissionLevel(
+                next(iter(permission_levels.values()), {"level": 0})["level"] + 1,
+                ["owner", "o"],
+                "Owner",
+            ),
         },
     )
     Config.PERMISSION_LEVELS._get_permission_level = classmethod(get_permission_level)
