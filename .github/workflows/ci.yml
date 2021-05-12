@@ -19,7 +19,7 @@ jobs:
           submodules: recursive
 
       - name: Set up Python ${{ env.PYTHON_VERSION }}
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v2.2.2
         with:
           python-version: ${{ env.PYTHON_VERSION }}
 
@@ -59,10 +59,10 @@ jobs:
           submodules: recursive
           fetch-depth: 0
 
-      - name: Setup Python 3.8
-        uses: actions/setup-python@v1
+      - name: Set up Python ${{ env.PYTHON_VERSION }}
+        uses: actions/setup-python@v2.2.2
         with:
-          python-version: 3.8
+          python-version: ${{ env.PYTHON_VERSION }}
 
       - name: Install build dependencies
         run: |
