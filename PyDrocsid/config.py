@@ -113,7 +113,7 @@ def load_config_file(path: Path):
             "PUBLIC": PermissionLevel(0, ["public", "p"], "Public"),
             "OWNER": PermissionLevel(
                 next(iter(permission_levels.values()), {"level": 0})["level"] + 1,
-                ["owner", "o"],
+                ["owner"],
                 "Owner",
             ),
         },

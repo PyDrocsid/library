@@ -70,10 +70,7 @@ class BasePermission(Enum):
     def _default_level(self) -> BasePermissionLevel:
         from PyDrocsid.config import Config
 
-        if self.cog not in Config.DEFAULT_PERMISSION_OVERRIDES:
-            return Config.DEFAULT_PERMISSION_LEVEL
-
-        return Config.DEFAULT_PERMISSION_OVERRIDES[self.cog].get(self.name, Config.DEFAULT_PERMISSION_LEVEL)
+        return Config.DEFAULT_PERMISSION_OVERRIDES.get(self.cog, {}).get(self.name, Config.DEFAULT_PERMISSION_LEVEL)
 
     async def resolve(self) -> BasePermissionLevel:
         from PyDrocsid.config import Config
