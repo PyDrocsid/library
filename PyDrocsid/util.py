@@ -131,19 +131,26 @@ def calculate_edit_distance(a: str, b: str) -> int:
 
 
 def split_lines(text: str, max_size: int, *, first_max_size: Optional[int] = None) -> List[str]:
+    text = text.strip(" \n")
+    ms = first_max_size or max_size
     out = []
-    cur = ""
-    for line in text.splitlines():
-        ms = max_size if out or first_max_size is None else first_max_size
-        ext = "\n" * bool(cur) + line
-        if len(cur) + len(ext) > ms and cur:
-            out.append(cur)
-            cur = line
+    i = 0
+    while i + ms < len(text):
+        j = text.rfind("\n", i, i + ms + 1)
+        if j == -1:
+            j = text.rfind(" ", i, i + ms + 1)
+
+        if j == -1:
+            j = i + ms
+            out.append(text[i:j])
+            i = j
         else:
-            cur += ext
-    if cur:
-        out.append(cur)
-    return out
+            out.append(text[i:j])
+            i = j + 1
+
+        ms = max_size
+
+    return [y for x in out + [text[i:]] if (y := x.strip(" \n"))]
 
 
 async def send_long_embed(
