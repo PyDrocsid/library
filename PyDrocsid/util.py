@@ -262,8 +262,15 @@ async def on_raw_reaction_add(message: Message, emoji: PartialEmoji, user: Union
         return
 
     key = f"pagination:channel={message.channel.id},msg={message.id}:"
+
+    if await redis.exists(key + "cooldown"):
+        create_task(message.remove_reaction(emoji, user))
+        return
+
     if not (idx := await redis.get(key + "index")) or not (length := await redis.get(key + "len")):
         return
+
+    await redis.setex(key + "cooldown", 1, 1)
 
     idx, length = int(idx), int(length)
 
