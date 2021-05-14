@@ -15,6 +15,12 @@ class NestedInt(int):
     def items(self):
         return self._values.items()
 
+    def __copy__(self):
+        return int(self)
+
+    def __deepcopy__(self, *_):
+        return int(self)
+
 
 class MaterialColors:
     red = NestedInt(
