@@ -28,6 +28,7 @@ REDIS_DB: int = int(getenv("REDIS_DB", "0"))
 
 CACHE_TTL: int = int(getenv("CACHE_TTL", 8 * 60 * 60))
 RESPONSE_LINK_TTL: int = int(getenv("RESPONSE_LINK_TTL", 2 * 60 * 60))
+PAGINATION_TTL: int = int(getenv("PAGINATION_TTL", 2 * 60 * 60))
 
 REPLY: bool = get_bool("REPLY", False)
 MENTION_AUTHOR: bool = get_bool("MENTION_AUTHOR", False)

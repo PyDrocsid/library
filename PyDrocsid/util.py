@@ -1,9 +1,13 @@
 import io
+import json
 import re
+from asyncio import create_task, gather
+from copy import deepcopy
 from socket import gethostbyname, socket, AF_INET, SOCK_STREAM, timeout, SHUT_RD
 from time import time
 from typing import Optional, List, Tuple, Union
 
+from PyDrocsid.events import listener
 from discord import Embed, Message, File, Attachment, TextChannel, Member, User, PartialEmoji, Forbidden, Role, Guild
 from discord.abc import Messageable
 from discord.ext.commands import Command, Context, CommandError, Bot, BadArgument, ColorConverter
@@ -11,9 +15,10 @@ from discord.ext.commands import Command, Context, CommandError, Bot, BadArgumen
 from PyDrocsid.command_edit import link_response
 from PyDrocsid.config import Config
 from PyDrocsid.emojis import name_to_emoji
-from PyDrocsid.environment import REPLY, MENTION_AUTHOR
+from PyDrocsid.environment import REPLY, MENTION_AUTHOR, PAGINATION_TTL
 from PyDrocsid.material_colors import MaterialColors
 from PyDrocsid.permission import BasePermission
+from PyDrocsid.redis import redis
 from PyDrocsid.settings import Settings
 from PyDrocsid.translations import t
 
@@ -159,15 +164,28 @@ async def send_long_embed(
     *,
     repeat_title: bool = False,
     repeat_name: bool = False,
+    paginate: bool = False,
+    max_fields: int = 25,
 ) -> List[Message]:
-    messages = []
+
+    if paginate:
+        repeat_title = True
+        repeat_name = True
+
+    max_fields = min(max_fields, 25)
+
+    embeds = []
+
+    def add_embed(e: Embed):
+        embeds.append(Embed.from_dict(deepcopy(e.to_dict())))
+
     fields = embed.fields.copy()
     cur = embed.copy()
     cur.clear_fields()
     *parts, last = split_lines(embed.description or "", 2048) or [""]
     for part in parts:
         cur.description = part
-        messages.append(await reply(channel, embed=cur))
+        add_embed(cur)
         if not repeat_title:
             cur.title = ""
             cur.remove_author()
@@ -176,10 +194,11 @@ async def send_long_embed(
         name: str = field.name
         value: str = field.value
         inline: bool = field.inline
-        first_max_size = min(1024 if name or cur.fields or cur.description else 2048, 6000 - len(cur))
-        *parts, last = split_lines(value, 2048, first_max_size=first_max_size)
-        if len(cur.fields) >= 25 or len(cur) + len(name or "** **") + len(parts[0] if parts else last) > 6000:
-            messages.append(await reply(channel, embed=cur))
+        max_size = 1024 if repeat_name else 2048
+        first_max_size = min(1024 if name or cur.fields or cur.description else max_size, 6000 - len(cur))
+        *parts, last = split_lines(value, max_size, first_max_size=first_max_size)
+        if len(cur.fields) >= max_fields or len(cur) + len(name or "** **") + len(parts[0] if parts else last) > 6000:
+            add_embed(cur)
             if not repeat_title:
                 cur.title = ""
                 cur.remove_author()
@@ -191,7 +210,7 @@ async def send_long_embed(
                 cur.add_field(name=name or "** **", value=part, inline=False)
             else:
                 cur.description = part
-            messages.append(await reply(channel, embed=cur))
+            add_embed(cur)
             if not repeat_title:
                 cur.title = ""
                 cur.remove_author()
@@ -203,8 +222,76 @@ async def send_long_embed(
             cur.add_field(name=name or "** **", value=last, inline=inline and not parts)
         else:
             cur.description = last
-    messages.append(await reply(channel, embed=cur))
-    return messages
+    add_embed(cur)
+
+    if not paginate or len(embeds) <= 1:
+        return [await reply(channel, embed=e) for e in embeds]
+
+    for i, embed in enumerate(embeds):
+        embed.title += f" ({i+1}/{len(embeds)})"
+
+    message = await reply(channel, embed=embeds[0])
+
+    await create_pagination(message, embeds)
+
+    return [message]
+
+
+async def create_pagination(message: Message, embeds: list[Embed]):
+    key = f"pagination:channel={message.channel.id},msg={message.id}:"
+
+    p = redis.pipeline()
+    p.setex(key + "index", PAGINATION_TTL, 0)
+    p.setex(key + "len", PAGINATION_TTL, len(embeds))
+    for embed in embeds:
+        p.rpush(key + "embeds", json.dumps(embed.to_dict()))
+    p.expire(key + "embeds", PAGINATION_TTL)
+    await p.execute()
+
+    if len(embeds) > 2:
+        await message.add_reaction(name_to_emoji["previous_track"])
+    await message.add_reaction(name_to_emoji["arrow_backward"])
+    await message.add_reaction(name_to_emoji["arrow_forward"])
+    if len(embeds) > 2:
+        await message.add_reaction(name_to_emoji["next_track"])
+
+
+@listener
+async def on_raw_reaction_add(message: Message, emoji: PartialEmoji, user: Union[User, Member]):
+    if user.bot:
+        return
+
+    key = f"pagination:channel={message.channel.id},msg={message.id}:"
+    if not (idx := await redis.get(key + "index")) or not (length := await redis.get(key + "len")):
+        return
+
+    idx, length = int(idx), int(length)
+
+    if str(emoji) == name_to_emoji["previous_track"]:
+        idx = None if idx <= 0 else 0
+    elif str(emoji) == name_to_emoji["arrow_backward"]:
+        idx = None if idx <= 0 else idx - 1
+    elif str(emoji) == name_to_emoji["arrow_forward"]:
+        idx = None if idx >= length - 1 else idx + 1
+    elif str(emoji) == name_to_emoji["next_track"]:
+        idx = None if idx >= length - 1 else length - 1
+    else:
+        return
+
+    create_task(message.remove_reaction(emoji, user))
+    if idx is None:
+        return
+
+    if not (embed_json := await redis.lrange(key + "embeds", idx, idx)):
+        return
+
+    p = redis.pipeline()
+    p.setex(key + "index", PAGINATION_TTL, idx)
+    p.expire(key + "len", PAGINATION_TTL)
+    p.expire(key + "embeds", PAGINATION_TTL)
+
+    embed = Embed.from_dict(json.loads(embed_json[0]))
+    await gather(p.execute(), message.edit(embed=embed))
 
 
 async def attachment_to_file(attachment: Attachment) -> File:
