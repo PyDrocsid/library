@@ -107,7 +107,7 @@ async def _get_permission_level(
     roles = {role.id for role in member.roles}
 
     async def has_role(role_name):
-        return await RoleSettings.get(role_name) in roles
+        return await RoleSettings.get(member.guild, role_name) in roles
 
     for k, v in permission_levels.items():
         # check for required guild permissions
