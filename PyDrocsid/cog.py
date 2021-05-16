@@ -3,7 +3,7 @@ from __future__ import annotations
 import sys
 from datetime import datetime
 from os import getenv
-from typing import Union, Type, Optional
+from typing import Union, Type, Optional, Callable, Awaitable
 
 from discord import (
     Member,
@@ -33,9 +33,12 @@ class Cog(DiscordCog):
     bot: Bot
 
     def __new__(cls, *args, **kwargs):
+        """Make sure there exists only one instance of a cog."""
+
         if cls.instance is None:
             cls.instance = super().__new__(cls, *args, **kwargs)
 
+            # set instance attribute of this and potential base classes
             c: Type[Cog]
             for c in cls.mro():
                 if c is Cog:
@@ -47,7 +50,14 @@ class Cog(DiscordCog):
 
     @staticmethod
     def prepare() -> bool:
+        """
+        Prepare a cog and return whether the cog can be added to the bot.
+        If this method returns False, the cog will be disabled.
+        """
+
         return True
+
+    # Event Handlers
 
     async def on_ready(self):
         pass
@@ -126,45 +136,79 @@ class Cog(DiscordCog):
 
 
 def check_dependencies(cogs: list[Cog]) -> set[Type[Cog]]:
+    """
+    Make sure all cog dependencies are met by recursively disabling cogs with unsatisfied dependencies.
+
+    :param cogs: list of available cogs
+    :return: set of disabled cog classes
+    """
+
+    # set of available cogs
     available: set[Type[Cog]] = {type(cog) for cog in cogs}
+
+    # reverse dependency graph
+    # required_by maps cog x to a list of cogs that depend on x
     required_by: dict[Type[Cog], list[Cog]] = {}
     for cog in cogs:
         for dependency in cog.DEPENDENCIES:
             required_by.setdefault(dependency, []).append(cog)
 
+    # set of disabled cogs
     disabled: set[Type[Cog]] = set()
+
+    # list of unsatisfied dependencies
     not_available: list[Type[Cog]] = [dependency for dependency in required_by if dependency not in available]
+
+    # remove all unsatisfied dependencies by disabling all cogs that depend on them
     while not_available:
+        # get a dependency and remove it from the list
         dependency: Type[Cog] = not_available.pop()
+
+        # continue if no cog depends on it
         if dependency not in required_by:
             continue
 
+        # iterate over list of cogs that depend on this dependency
         for cog in required_by[dependency]:
+            # skip already disabled cogs
             if type(cog) in disabled:
                 continue
 
+            # disable cog
             logger.warning(
                 "Cog '%s' has been disabled because the dependency '%s' is missing.",
                 cog.__class__.__name__,
                 dependency.__name__,
             )
             disabled.add(type(cog))
+
+            # add cog to list of unsatisfied dependency, as this cog is no longer available
+            # but may still be required by other cogs
             not_available.append(type(cog))
 
     return disabled
 
 
 def register_cogs(bot: Bot, *cogs: Cog):
+    """Add cogs to the bot."""
+
     register_events(bot)
 
     for cog in cogs:
         cog.bot = bot
+
+        # iterate over attributes of cog to find event handlers
         for e in dir(Cog):
-            func = getattr(cog, e)
+            func: Callable[..., Awaitable] = getattr(cog, e)
+
+            # event handlers must differ from the default handler defined in Cog
             if e.startswith("on_") and callable(func) and getattr(type(cog), e) is not getattr(Cog, e):
+                # register the event handler
                 event_handlers.setdefault(e[3:], []).append(func)
+
         bot.add_cog(cog)
 
+        # load metadata from cog and its base classes
         cls: Type[Cog]
         for cls in cog.__class__.mro():
             if cls is Cog:
@@ -175,9 +219,15 @@ def register_cogs(bot: Bot, *cogs: Cog):
 
 
 def load_cogs(bot: Bot, *cogs: Cog):
-    cog_blacklist = set(map(str.lower, getenv("DISABLED_COGS", "").split(",")))
+    """Load and prepare cogs, resolve dependencies and add cogs to the bot."""
+
+    # load list of disabled cogs from environment variables
+    cog_blacklist: set[str] = set(map(str.lower, getenv("DISABLED_COGS", "").split(",")))
+
     disabled_cogs: list[Cog] = []
     enabled_cogs: list[Cog] = []
+
+    # divide cogs into lists of enabled and disabled cogs
     for cog in cogs:
         if cog.__class__.__name__.lower() in cog_blacklist or not cog.prepare():
             disabled_cogs.append(cog)
@@ -185,10 +235,12 @@ def load_cogs(bot: Bot, *cogs: Cog):
 
         enabled_cogs.append(cog)
 
+    # disable cogs due to unsatisfied dependencies
     disabled: set[Type[Cog]] = check_dependencies(enabled_cogs)
     disabled_cogs += [cog for cog in enabled_cogs if type(cog) in disabled]
     enabled_cogs = [cog for cog in enabled_cogs if type(cog) not in disabled]
 
+    # register remaining cogs
     register_cogs(bot, *enabled_cogs)
 
     if bot.cogs:
