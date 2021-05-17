@@ -1,4 +1,6 @@
 class NestedInt(int):
+    """Combination of integer and read only dictionary."""
+
     _values = {}
 
     def __new__(cls, x, values):
@@ -23,6 +25,8 @@ class NestedInt(int):
 
 
 class MaterialColors:
+    """List of all material colors"""
+
     red = NestedInt(
         0xF44336,
         {
