@@ -39,6 +39,8 @@ def select(*entities, **kwargs) -> Select:
 
 
 def filter_by(cls, **kwargs) -> Select:
+    """Shortcut for select().filer_by()"""
+
     return select(cls).filter_by(**kwargs)
 
 
@@ -49,6 +51,8 @@ def exists(*entities, **kwargs) -> Exists:
 
 
 def delete(table) -> Delete:
+    """Shortcut for :meth:`sqlalchemy.sql.expression.delete`"""
+
     return sa_delete(table)
 
 
@@ -106,6 +110,8 @@ class DB:
         self._session: ContextVar[Optional[AsyncSession]] = ContextVar("session", default=None)
 
     async def create_tables(self):
+        """Create all tables defined in enabled cog packages."""
+
         from PyDrocsid.config import get_subclasses_in_enabled_packages
 
         logger.debug("creating tables")
@@ -136,24 +142,38 @@ class DB:
         return obj
 
     async def exec(self, statement: Executable, *args, **kwargs):
+        """Execute an sql statement and return the result."""
+
         return await self.session.execute(statement, *args, **kwargs)
 
     async def stream(self, statement: Executable, *args, **kwargs):
+        """Execute an sql statement and stream the result."""
+
         return (await self.session.stream(statement, *args, **kwargs)).scalars()
 
     async def all(self, statement: Executable, *args, **kwargs) -> list[T]:
+        """Execute an sql statement and return all results as a list."""
+
         return [x async for x in await self.stream(statement, *args, **kwargs)]
 
     async def first(self, *args, **kwargs):
+        """Execute an sql statement and return the first result."""
+
         return (await self.exec(*args, **kwargs)).scalar()
 
     async def exists(self, *args, **kwargs):
+        """Execute an sql statement and return whether it returned at least one row."""
+
         return await self.first(exists(*args, **kwargs).select())
 
     async def count(self, *args, **kwargs):
+        """Execute an sql statement and return the number of returned rows."""
+
         return await self.first(select(count()).select_from(*args, **kwargs))
 
     async def get(self, cls: Type[T], **kwargs) -> Optional[T]:
+        """Shortcut for first(filter_by(...))"""
+
         return await self.first(filter_by(cls, **kwargs))
 
     async def commit(self):
@@ -169,18 +189,22 @@ class DB:
             await self.session.close()
 
     def create_session(self) -> AsyncSession:
+        """Create a new async session and store it in the context variable."""
+
         self._session.set(session := AsyncSession(self.engine))
         return session
 
     @property
     def session(self) -> AsyncSession:
-        """Get the session object for the current thread"""
+        """Get the session object for the current task"""
 
         return self._session.get()
 
 
 @asynccontextmanager
 async def db_context():
+    """Async context manager for database sessions."""
+
     db.create_session()
     try:
         yield
@@ -190,6 +214,8 @@ async def db_context():
 
 
 def db_wrapper(f):
+    """Decorator which wraps an async function in a database context."""
+
     @wraps(f)
     async def inner(*args, **kwargs):
         async with db_context():
@@ -219,4 +245,5 @@ def get_database() -> DB:
     )
 
 
+# global database connection object
 db: DB = get_database()
