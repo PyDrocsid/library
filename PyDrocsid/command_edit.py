@@ -12,6 +12,8 @@ logger = get_logger(__name__)
 
 
 async def link_response(msg: Union[Message, Context], *response_messages: Message):
+    """Create a link from message to a given list of bot responses and add it to redis."""
+
     if not response_messages:
         return
 
@@ -26,6 +28,8 @@ async def link_response(msg: Union[Message, Context], *response_messages: Messag
 
 
 async def handle_edit(bot: Bot, message: Message):
+    """Delete linked bot responses of a command message and execute new command."""
+
     if message.author.bot:
         return
 
@@ -37,6 +41,8 @@ async def handle_edit(bot: Bot, message: Message):
 
 
 async def handle_delete(bot: Bot, channel_id: int, message_id: int):
+    """Delete linked bot responses of a command message."""
+
     responses = await redis.lrange(key := f"bot_response:channel={channel_id},msg={message_id}", 0, -1)
     await redis.delete(key)
 

@@ -33,6 +33,8 @@ class SettingsModel(db.Base):
     @staticmethod
     @LockDeco
     async def get(dtype: Type[T], key: str, default: Optional[T] = None) -> Optional[T]:
+        """Get the value of a given setting."""
+
         if await redis.exists(rkey := f"settings:{key}"):
             out: str = await redis.get(rkey)
         else:
@@ -50,6 +52,8 @@ class SettingsModel(db.Base):
     @staticmethod
     @LockDeco
     async def set(dtype: Type[T], key: str, value: T) -> SettingsModel:
+        """Set the value of a given setting."""
+
         rkey = f"settings:{key}"
         if (row := await db.get(SettingsModel, key=key)) is None:
             row = await SettingsModel._create(key, value)
@@ -81,22 +85,32 @@ class Settings(NoAliasEnum):
         return type(self.default)
 
     async def get(self) -> T:
+        """Get the value of this setting."""
+
         return await SettingsModel.get(self.type, self.fullname, self.default)
 
     async def set(self, value: T) -> T:
+        """Set the value of this setting."""
+
         await SettingsModel.set(self.type, self.fullname, value)
         return value
 
     async def reset(self) -> T:
+        """Reset the value of this setting to its default value."""
+
         return await self.set(self.default)
 
 
 class RoleSettings:
     @staticmethod
     async def get(name: str) -> int:
+        """Get the value of this role setting."""
+
         return await SettingsModel.get(int, f"role:{name}", -1)
 
     @staticmethod
     async def set(name: str, role_id: int) -> int:
+        """Set the value of this role setting."""
+
         await SettingsModel.set(int, f"role:{name}", role_id)
         return role_id

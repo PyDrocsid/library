@@ -11,6 +11,8 @@ API_URL = "https://api.github.com/graphql"
 
 
 async def graphql(query: str, **kwargs) -> Optional[dict]:
+    """Send a query to the github graphql api and return the result."""
+
     headers = {"Authorization": f"bearer {GITHUB_TOKEN}"} if GITHUB_TOKEN else {}
     async with ClientSession() as session:
         async with session.post(API_URL, headers=headers, json={"query": query, "variables": kwargs}) as response:
@@ -21,6 +23,8 @@ async def graphql(query: str, **kwargs) -> Optional[dict]:
 
 
 async def get_users(ids: list[str]) -> Optional[dict[str, GitHubUser]]:
+    """Get a list of github users by their ids."""
+
     result: Optional[dict] = await graphql("query($ids:[ID!]!){nodes(ids:$ids){...on User{id,login,url}}}", ids=ids)
     if not result:
         return None
@@ -29,6 +33,8 @@ async def get_users(ids: list[str]) -> Optional[dict[str, GitHubUser]]:
 
 
 async def get_repo_description(owner: str, name: str) -> Optional[str]:
+    """Get the description of a github repository."""
+
     result: Optional[dict] = await graphql(
         "query($owner:String!,$name:String!){repository(owner:$owner,name:$name){description}}",
         owner=owner,

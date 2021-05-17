@@ -16,7 +16,10 @@ from PyDrocsid.translations import Translations
 T = TypeVar("T")
 
 
+# noinspection SpellCheckingInspection
 class Contributor:
+    """Collection of all contributors. Each contributor is a (discord_id, github_id) tuple."""
+
     Defelo = (370876111992913922, "MDQ6VXNlcjQxNzQ3NjA1")
     TNT2k = (212866839083089921, "MDQ6VXNlcjQ0MzQ5NzUw")
     wolflu = (339062431131369472, "MDQ6VXNlcjYwMDQ4NTY1")
@@ -25,14 +28,19 @@ class Contributor:
 
 
 class Config:
+    """Global bot configuration"""
+
+    # bot information
     NAME: str
     VERSION: str
 
+    # repository information
     REPO_OWNER: str
     REPO_NAME: str
     REPO_LINK: str
     REPO_ICON: str
 
+    # developers
     AUTHOR: Contributor
     CONTRIBUTORS: Counter[Contributor] = Counter(
         {
@@ -46,6 +54,7 @@ class Config:
 
     ROLES: dict[str, tuple[str, bool]]
 
+    # permissions and permission levels
     PERMISSION_LEVELS: Type[BasePermissionLevel]
     DEFAULT_PERMISSION_LEVEL: BasePermissionLevel
     DEFAULT_PERMISSION_OVERRIDES: dict[str, dict[str, BasePermissionLevel]] = {}
@@ -55,21 +64,28 @@ class Config:
 
 
 def get_subclasses_in_enabled_packages(base: Type[T]) -> list[Type[T]]:
+    """Get all subclasses of a given base class that are defined in an enabled cog package."""
+
     return [
         cls for cls in base.__subclasses__() if sys.modules[cls.__module__].__package__ in Config.ENABLED_COG_PACKAGES
     ]
 
 
 def load_version():
+    """Get bot version either from the VERSION file or from git describe and store it in the bot config."""
+
     Config.VERSION = getoutput("cat VERSION 2>/dev/null || git describe --tags --always").lstrip("v")
 
 
 def load_config_file(path: Path):
+    """Load bot configuration from a config file."""
+
     with path.open() as file:
         config = yaml.safe_load(file)
 
     Config.NAME = config["name"]
 
+    # repository information
     Config.REPO_OWNER = config["repo"]["owner"]
     Config.REPO_NAME = config["repo"]["name"]
     Config.REPO_LINK = f"https://github.com/{Config.REPO_OWNER}/{Config.REPO_NAME}"
@@ -77,17 +93,21 @@ def load_config_file(path: Path):
 
     Config.AUTHOR = getattr(Contributor, config["author"])
 
+    # bot language
     if (lang := getenv("LANGUAGE", config["default_language"])) not in config["languages"]:
         raise ValueError(f"unknown language: {lang}")
     Translations.LANGUAGE = lang
 
     Config.ROLES = {k: (v["name"], v["check_assignable"]) for k, v in config["roles"].items()}
 
+    # permission levels
     permission_levels: dict[str, dict] = {
         k: v for k, v in sorted(config["permission_levels"].items(), key=lambda x: -x[1]["level"])
     }
 
     async def get_permission_level(cls, member: Union[Member, User]) -> BasePermissionLevel:
+        """Get the permission level of a given member."""
+
         if not isinstance(member, Member):
             return cls.PUBLIC
 
@@ -97,9 +117,11 @@ def load_config_file(path: Path):
             return await RoleSettings.get(role_name) in roles
 
         for k, v in permission_levels.items():
+            # check for required guild permissions
             if any(getattr(member.guild_permissions, p) for p in v["if"].get("permissions", [])):
                 return getattr(cls, k.upper())
 
+            # check for required roles
             for r in v["if"].get("roles", []):
                 if await has_role(r):
                     return getattr(cls, k.upper())
@@ -112,7 +134,7 @@ def load_config_file(path: Path):
             **{k.upper(): PermissionLevel(v["level"], v["aliases"], v["name"]) for k, v in permission_levels.items()},
             "PUBLIC": PermissionLevel(0, ["public", "p"], "Public"),
             "OWNER": PermissionLevel(
-                next(iter(permission_levels.values()), {"level": 0})["level"] + 1,
+                next(iter(permission_levels.values()), {"level": 0})["level"] + 1,  # highest permission level + 1
                 ["owner"],
                 "Owner",
             ),
