@@ -1,15 +1,20 @@
-import asyncio
+from asyncio import Lock
+from typing import TypeVar
+
+T = TypeVar("T")
 
 
 class MultiLock:
+    """Container for multiple async locks which automatically deletes unused locks"""
+
     def __init__(self):
-        self.locks = {}
-        self.requests = {}
+        self.locks: dict[T, Lock] = {}
+        self.requests: dict[T, int] = {}
 
-    def __getitem__(self, key):
-        multilock = self
+    def __getitem__(self, key: T):
+        multilock: MultiLock = self
 
-        class Lock:
+        class LockContext:
             async def __aenter__(self, *_):
                 if key is not None:
                     await multilock.acquire(key)
@@ -18,15 +23,15 @@ class MultiLock:
                 if key is not None:
                     multilock.release(key)
 
-        return Lock()
+        return LockContext()
 
-    async def acquire(self, key):
-        lock = self.locks.setdefault(key, asyncio.Lock())
+    async def acquire(self, key: T):
+        lock: Lock = self.locks.setdefault(key, Lock())
         self.requests[key] = self.requests.get(key, 0) + 1
         await lock.acquire()
 
-    def release(self, key):
-        lock = self.locks[key]
+    def release(self, key: T):
+        lock: Lock = self.locks[key]
         lock.release()
         self.requests[key] -= 1
         if not self.requests[key]:
