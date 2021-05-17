@@ -5,6 +5,8 @@ from PyDrocsid.emojis import emoji_to_name
 
 
 class EmojiConverter(PartialEmojiConverter):
+    """Emoji converter which also supports unicode emojis."""
+
     async def convert(self, ctx, argument):
         try:
             return await super().convert(ctx, argument)
