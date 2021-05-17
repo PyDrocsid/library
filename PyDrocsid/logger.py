@@ -10,6 +10,8 @@ from PyDrocsid.environment import LOG_LEVEL
 
 
 def setup_sentry(dsn: str, name: str, version: str):
+    """Initialize sentry connection."""
+
     sentry_sdk.init(
         dsn=dsn,
         attach_stacktrace=True,
@@ -33,6 +35,8 @@ logging_handler.setFormatter(logging_formatter)
 
 
 def get_logger(name: str) -> logging.Logger:
+    """Get a logger with a given name."""
+
     logger: logging.Logger = logging.getLogger(name)
     logger.addHandler(logging_handler)
     logger.setLevel(LOG_LEVEL.upper())
