@@ -7,15 +7,16 @@ from socket import gethostbyname, socket, AF_INET, SOCK_STREAM, timeout, SHUT_RD
 from time import time
 from typing import Optional, List, Tuple, Union
 
-from PyDrocsid.events import listener
 from discord import Embed, Message, File, Attachment, TextChannel, Member, User, PartialEmoji, Forbidden, Role, Guild
 from discord.abc import Messageable
+from discord.embeds import EmptyEmbed
 from discord.ext.commands import Command, Context, CommandError, Bot, BadArgument, ColorConverter
 
 from PyDrocsid.command_edit import link_response
 from PyDrocsid.config import Config
 from PyDrocsid.emojis import name_to_emoji
 from PyDrocsid.environment import REPLY, MENTION_AUTHOR, PAGINATION_TTL, DISABLE_PAGINATION
+from PyDrocsid.events import listener
 from PyDrocsid.material_colors import MaterialColors
 from PyDrocsid.permission import BasePermission
 from PyDrocsid.redis import redis
@@ -23,6 +24,10 @@ from PyDrocsid.settings import Settings
 from PyDrocsid.translations import t
 
 t = t.g
+
+
+# an "empty" markdown string (e.g. for empty field names in embeds)
+EMPTY_MARKDOWN = "_ _"
 
 
 class GlobalSettings(Settings):
@@ -220,12 +225,27 @@ def split_lines(text: str, max_size: int, *, first_max_size: Optional[int] = Non
     return [y for x in out + [text[i:]] if (y := x.strip(" \n"))]
 
 
+class EmbedLimits:
+    # https://discord.com/developers/docs/resources/channel#embed-limits
+    TITLE = 256
+    DESCRIPTION = 2048
+    FIELDS = 25
+    FIELD_NAME = 256
+    FIELD_VALUE = 1024
+    FOOTER_TEXT = 2048
+    AUTHOR_NAME = 256
+    TOTAL = 6000
+
+
 async def send_long_embed(
     channel: Messageable,
     embed: Embed,
     *,
     repeat_title: bool = False,
+    repeat_thumbnail: bool = False,
     repeat_name: bool = False,
+    repeat_image: bool = False,
+    repeat_footer: bool = False,
     paginate: bool = False,
     max_fields: int = 25,
 ) -> List[Message]:
@@ -235,7 +255,10 @@ async def send_long_embed(
     :param channel: the channel into which the messages should be sent
     :param embed: the embed to send
     :param repeat_title: whether to repeat the embed title in every embed
+    :param repeat_thumbnail: whether to repeat the thumbnail image in every embed
     :param repeat_name: whether to repeat field names in every embed
+    :param repeat_image: whether to repeat the image in every embed
+    :param repeat_footer: whether to repeat the footer in every embed
     :param paginate: whether to use pagination instead of multiple messages
     :param max_fields: the maximum number of fields an embed is allowed to have
     :return: list of all messages that have been sent
@@ -243,7 +266,7 @@ async def send_long_embed(
 
     if DISABLE_PAGINATION:
         paginate = False
-        max_fields = 25
+        max_fields = EmbedLimits.FIELDS
 
     # enforce repeat_title and repeat_name when using pagination
     if paginate:
@@ -251,7 +274,21 @@ async def send_long_embed(
         repeat_name = True
 
     # always limit max_fields to 25
-    max_fields = min(max_fields, 25)
+    max_fields = min(max_fields, EmbedLimits.FIELDS)
+
+    # the maximum possible size of an embed
+    max_total: int = EmbedLimits.TOTAL - 20 * paginate
+
+    # pre checks
+    if len(embed.title) > EmbedLimits.TITLE - 20 * paginate:
+        raise ValueError("Embed title is too long.")
+    if embed.footer and len(embed.footer.text) > EmbedLimits.FOOTER_TEXT:
+        raise ValueError("Footer text is too long.")
+    if embed.author and len(embed.author.name) > EmbedLimits.AUTHOR_NAME:
+        raise ValueError("Author name is too long.")
+    for i, field in enumerate(embed.fields):
+        if len(field.name) > EmbedLimits.FIELD_NAME:
+            raise ValueError(f"Name of field at position {i} is too long.")
 
     embeds: list[Embed] = []
 
@@ -260,68 +297,111 @@ async def send_long_embed(
 
         embeds.append(Embed.from_dict(deepcopy(e.to_dict())))
 
+    # clear and backup embed fields, footer and image
     fields = embed.fields.copy()
+    footer = embed.footer
+    image = embed.image
     cur = embed.copy()
     cur.clear_fields()
+    if not repeat_footer and footer:
+        delattr(cur, "_footer")
+    if not repeat_image:
+        cur.set_image(url=EmptyEmbed)
 
-    # split embed description
-    *parts, last = split_lines(embed.description or "", 2048) or [""]
+    *parts, last = split_lines(embed.description or "", EmbedLimits.DESCRIPTION) or [""]
     for part in parts:
         cur.description = part
         add_embed(cur)
+
         if not repeat_title:
             cur.title = ""
             cur.remove_author()
+        if not repeat_thumbnail:
+            cur.set_thumbnail(url=EmptyEmbed)
     cur.description = last
 
     # add embed fields
     for field in fields:
-        name: str = field.name
-        value: str = field.value
-        inline: bool = field.inline
+        parts = split_lines(field.value, EmbedLimits.FIELD_VALUE)
+        inline = field.inline and len(parts) == 1
 
-        # if repeat_name is True, the text must be put into a field, which cannot contain more than 1024 characters
-        # otherwise the text can be put into the embed description, which can contain 2048 characters
-        max_size = 1024 if repeat_name else 2048
+        if not field.name:
+            field.name = EMPTY_MARKDOWN
 
-        # if name is not empty or the current embed already contains other fields or a description, the first part
-        # of the value of this field cannot be put into the embed description. in this case must be put into an embed
-        # field which is limited to 1024 characters
-        # in total the embed cannot contain more than 6000 characters
-        first_max_size = min(1024 if name or cur.fields or cur.description else max_size, 6000 - len(cur))
+        field_length: int = len(field.name) + sum(map(len, parts)) + len(EMPTY_MARKDOWN) * (len(parts) - 1)
 
-        # split field value
-        *parts, last = split_lines(value, max_size, first_max_size=first_max_size)
+        # check whether field fits in just one embed
+        field_length_one_embed = field_length
+        field_length_one_embed += len(cur.title)
+        if cur.author:
+            field_length_one_embed += len(cur.author.name)
+        if cur.footer:
+            field_length_one_embed += len(cur.footer.text)
 
-        # create a new embed if there is not enough space for the first part of the field value
-        if len(cur.fields) >= max_fields or len(cur) + len(name or "** **") + len(parts[0] if parts else last) > 6000:
-            add_embed(cur)
-            if not repeat_title:
-                cur.title = ""
-                cur.remove_author()
-            cur.description = ""
-            cur.clear_fields()
+        if len(parts) <= max_fields and field_length_one_embed <= max_total:
 
-        # create embeds for field value substrings
-        for part in parts:
-            if name or cur.fields or cur.description:
-                cur.add_field(name=name or "** **", value=part, inline=False)
+            # check whether field fits in current embed
+            if len(parts) + len(cur.fields) <= max_fields and field_length + len(cur) <= max_total:
+
+                # add field to current embed
+                for i, part in enumerate(parts):
+                    cur.add_field(name=[field.name, EMPTY_MARKDOWN][i > 0], value=part, inline=inline)
+
             else:
-                cur.description = part
+
+                # create new embed and add field
+                add_embed(cur)
+                cur.description = ""
+                cur.clear_fields()
+                if not repeat_title:
+                    cur.title = ""
+                    cur.remove_author()
+                if not repeat_thumbnail:
+                    cur.set_thumbnail(url=EmptyEmbed)
+
+                for i, part in enumerate(parts):
+                    cur.add_field(name=[field.name, EMPTY_MARKDOWN][i > 0], value=part, inline=inline)
+
+        else:
+
+            # add field parts individually
+            for i, part in enumerate(parts):
+                name: str = [field.name, EMPTY_MARKDOWN][i > 0]
+
+                # check whether embed is full
+                if len(cur.fields) >= max_fields or len(cur) + len(name) + len(part) > max_total:
+                    # create new embed
+                    add_embed(cur)
+                    cur.description = ""
+                    cur.clear_fields()
+                    if not repeat_title:
+                        cur.title = ""
+                        cur.remove_author()
+                    if not repeat_thumbnail:
+                        cur.set_thumbnail(url=EmptyEmbed)
+                    if repeat_name:
+                        name = field.name
+
+                # add field part
+                cur.add_field(name=name, value=part, inline=inline)
+
+    # add footer to last embed (if previously removed)
+    if not repeat_footer and footer:
+        if len(cur) + len(footer.text) > max_total:
             add_embed(cur)
+            cur.description = ""
+            cur.clear_fields()
             if not repeat_title:
                 cur.title = ""
                 cur.remove_author()
-            if not repeat_name:
-                name = ""
-            cur.description = ""
-            cur.clear_fields()
+            if not repeat_thumbnail:
+                cur.set_thumbnail(url=EmptyEmbed)
 
-        # add last substring
-        if name or cur.fields or cur.description:
-            cur.add_field(name=name or "** **", value=last, inline=inline and not parts)
-        else:
-            cur.description = last
+        cur.set_footer(text=footer.text, icon_url=footer.icon_url)
+
+    # add image to last embed (if previously removed)
+    if not repeat_image and image:
+        cur.set_image(url=image.url)
 
     add_embed(cur)
 
@@ -331,7 +411,7 @@ async def send_long_embed(
 
     # add page numbers to embed titles
     for i, embed in enumerate(embeds):
-        embed.title += f" ({i+1}/{len(embeds)})"
+        embed.title += f" ({i + 1}/{len(embeds)})"
 
     # send first embed and create pagination
     message = await reply(channel, embed=embeds[0])
