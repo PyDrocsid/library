@@ -25,6 +25,8 @@ SQL_SHOW_STATEMENTS: bool = get_bool("SQL_SHOW_STATEMENTS", False)
 SENTRY_DSN: str = getenv("SENTRY_DSN")  # sentry data source name
 GITHUB_TOKEN: str = getenv("GITHUB_TOKEN")  # github personal access token
 
+DISABLED_COGS: set[str] = set(map(str.lower, getenv("DISABLED_COGS", "").split(",")))
+
 # redis configuration
 REDIS_HOST: str = environ["REDIS_HOST"]
 REDIS_PORT: int = int(getenv("REDIS_PORT", "6379"))

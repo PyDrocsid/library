@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import sys
 from datetime import datetime
-from os import getenv
 from typing import Union, Type, Optional, Callable, Awaitable
 
 from discord import (
@@ -19,6 +18,7 @@ from discord.abc import Messageable, User
 from discord.ext.commands import Cog as DiscordCog, Bot, Context, CommandError
 
 from PyDrocsid.config import Config, Contributor
+from PyDrocsid.environment import DISABLED_COGS
 from PyDrocsid.events import register_events, event_handlers
 from PyDrocsid.logger import get_logger
 
@@ -221,15 +221,12 @@ def register_cogs(bot: Bot, *cogs: Cog):
 def load_cogs(bot: Bot, *cogs: Cog):
     """Load and prepare cogs, resolve dependencies and add cogs to the bot."""
 
-    # load list of disabled cogs from environment variables
-    cog_blacklist: set[str] = set(map(str.lower, getenv("DISABLED_COGS", "").split(",")))
-
     disabled_cogs: list[Cog] = []
     enabled_cogs: list[Cog] = []
 
     # divide cogs into lists of enabled and disabled cogs
     for cog in cogs:
-        if cog.__class__.__name__.lower() in cog_blacklist or not cog.prepare():
+        if cog.__class__.__name__.lower() in DISABLED_COGS or not cog.prepare():
             disabled_cogs.append(cog)
             continue
 
