@@ -20,9 +20,10 @@ async def link_response(msg: Union[Message, Context], *response_messages: Messag
     if isinstance(msg, Context):
         msg = msg.message
 
+    # save channel:message pairs in redis
     await redis.lpush(
         key := f"bot_response:channel={msg.channel.id},msg={msg.id}",
-        *[msg.id for msg in response_messages],
+        *[f"{msg.channel.id}:{msg.id}" for msg in response_messages],
     )
     await redis.expire(key, RESPONSE_LINK_TTL)
 
@@ -51,11 +52,15 @@ async def handle_delete(bot: Bot, channel_id: int, message_id: int):
         logger.warning("could not find channel %s", channel_id)
         return
 
-    async def delete_message(msg_id):
+    async def delete_message(chn_id, msg_id):
+        if not (chn := bot.get_channel(chn_id)):
+            logger.warning("could not delete message %s in unknown channel %s", msg_id, chn_id)
+            return
+
         try:
-            message: Message = await channel.fetch_message(int(msg_id))
+            message: Message = await chn.fetch_message(int(msg_id))
             await message.delete()
         except (NotFound, Forbidden, HTTPException):
-            logger.warning("could not delete message %s in #%s (%s)", msg_id, channel.name, channel.id)
+            logger.warning("could not delete message %s in #%s (%s)", msg_id, chn.name, chn.id)
 
-    await asyncio.gather(*map(delete_message, responses))
+    await asyncio.gather(*[delete_message(*map(int, r.split(":"))) for r in responses])
