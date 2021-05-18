@@ -37,5 +37,7 @@ RESPONSE_LINK_TTL: int = int(getenv("RESPONSE_LINK_TTL", 2 * 60 * 60))
 PAGINATION_TTL: int = int(getenv("PAGINATION_TTL", 2 * 60 * 60))
 
 # configuration for reply feature
-REPLY: bool = get_bool("REPLY", False)
-MENTION_AUTHOR: bool = get_bool("MENTION_AUTHOR", False)
+REPLY: bool = get_bool("REPLY", True)
+MENTION_AUTHOR: bool = get_bool("MENTION_AUTHOR", True)
+
+DISABLE_PAGINATION: bool = get_bool("DISABLE_PAGINATION", False)

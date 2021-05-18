@@ -15,7 +15,7 @@ from discord.ext.commands import Command, Context, CommandError, Bot, BadArgumen
 from PyDrocsid.command_edit import link_response
 from PyDrocsid.config import Config
 from PyDrocsid.emojis import name_to_emoji
-from PyDrocsid.environment import REPLY, MENTION_AUTHOR, PAGINATION_TTL
+from PyDrocsid.environment import REPLY, MENTION_AUTHOR, PAGINATION_TTL, DISABLE_PAGINATION
 from PyDrocsid.material_colors import MaterialColors
 from PyDrocsid.permission import BasePermission
 from PyDrocsid.redis import redis
@@ -240,6 +240,10 @@ async def send_long_embed(
     :param max_fields: the maximum number of fields an embed is allowed to have
     :return: list of all messages that have been sent
     """
+
+    if DISABLE_PAGINATION:
+        paginate = False
+        max_fields = 25
 
     # enforce repeat_title and repeat_name when using pagination
     if paginate:
