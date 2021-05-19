@@ -324,7 +324,7 @@ async def send_long_embed(
     # add embed fields
     for field in fields:
         parts = split_lines(field.value, EmbedLimits.FIELD_VALUE)
-        inline = field.inline and len(parts) == 1
+        inline = bool(field.inline) and len(parts) == 1
 
         if not field.name:
             field.name = EMPTY_MARKDOWN
