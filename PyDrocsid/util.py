@@ -318,6 +318,17 @@ async def send_long_embed(
 
         embeds.append(Embed.from_dict(deepcopy(e.to_dict())))
 
+    def clear_embed(*, clear_completely: bool = False):
+        if not repeat_title:
+            cur.title = ""
+            cur.remove_author()
+        if not repeat_thumbnail:
+            cur.set_thumbnail(url=EmptyEmbed)
+
+        if clear_completely:
+            cur.description = ""
+            cur.clear_fields()
+
     # clear and backup embed fields, footer and image
     fields = embed.fields.copy()
     footer = embed.footer
@@ -333,12 +344,8 @@ async def send_long_embed(
     for part in parts:
         cur.description = part
         add_embed(cur)
+        clear_embed()
 
-        if not repeat_title:
-            cur.title = ""
-            cur.remove_author()
-        if not repeat_thumbnail:
-            cur.set_thumbnail(url=EmptyEmbed)
     cur.description = last
 
     # add embed fields
@@ -352,36 +359,24 @@ async def send_long_embed(
         field_length: int = len(field.name) + sum(map(len, parts)) + len(EMPTY_MARKDOWN) * (len(parts) - 1)
 
         # check whether field fits in just one embed
-        field_length_one_embed = field_length
-        field_length_one_embed += len(cur.title)
+        total_size_one_embed = field_length
+        total_size_one_embed += len(cur.title)
         if cur.author:
-            field_length_one_embed += len(cur.author.name)
+            total_size_one_embed += len(cur.author.name)
         if cur.footer:
-            field_length_one_embed += len(cur.footer.text)
+            total_size_one_embed += len(cur.footer.text)
 
-        if len(parts) <= max_fields and field_length_one_embed <= max_total:
+        if len(parts) <= max_fields and total_size_one_embed <= max_total:
 
-            # check whether field fits in current embed
-            if len(parts) + len(cur.fields) <= max_fields and field_length + len(cur) <= max_total:
-
-                # add field to current embed
-                for i, part in enumerate(parts):
-                    cur.add_field(name=[field.name, EMPTY_MARKDOWN][i > 0], value=part, inline=inline)
-
-            else:
-
-                # create new embed and add field
+            if len(parts) + len(cur.fields) > max_fields or field_length + len(cur) > max_total:
+                # field does not fit into current embed
+                # -> create new embed
                 add_embed(cur)
-                cur.description = ""
-                cur.clear_fields()
-                if not repeat_title:
-                    cur.title = ""
-                    cur.remove_author()
-                if not repeat_thumbnail:
-                    cur.set_thumbnail(url=EmptyEmbed)
+                clear_embed(clear_completely=True)
 
-                for i, part in enumerate(parts):
-                    cur.add_field(name=[field.name, EMPTY_MARKDOWN][i > 0], value=part, inline=inline)
+            # add field to current embed
+            for i, part in enumerate(parts):
+                cur.add_field(name=[field.name, EMPTY_MARKDOWN][i > 0], value=part, inline=inline)
 
         else:
 
@@ -393,13 +388,7 @@ async def send_long_embed(
                 if len(cur.fields) >= max_fields or len(cur) + len(name) + len(part) > max_total:
                     # create new embed
                     add_embed(cur)
-                    cur.description = ""
-                    cur.clear_fields()
-                    if not repeat_title:
-                        cur.title = ""
-                        cur.remove_author()
-                    if not repeat_thumbnail:
-                        cur.set_thumbnail(url=EmptyEmbed)
+                    clear_embed(clear_completely=True)
                     if repeat_name:
                         name = field.name
 
@@ -410,13 +399,7 @@ async def send_long_embed(
     if not repeat_footer and footer:
         if len(cur) + len(footer.text) > max_total:
             add_embed(cur)
-            cur.description = ""
-            cur.clear_fields()
-            if not repeat_title:
-                cur.title = ""
-                cur.remove_author()
-            if not repeat_thumbnail:
-                cur.set_thumbnail(url=EmptyEmbed)
+            clear_embed(clear_completely=True)
 
         cur.set_footer(text=footer.text, icon_url=footer.icon_url)
 
