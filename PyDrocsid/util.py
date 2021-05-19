@@ -268,10 +268,11 @@ async def send_long_embed(
         paginate = False
         max_fields = EmbedLimits.FIELDS
 
-    # enforce repeat_title and repeat_name when using pagination
+    # enforce repeat_title, repeat_name and repeat_footer when using pagination
     if paginate:
         repeat_title = True
         repeat_name = True
+        repeat_footer = True
 
     # always limit max_fields to 25
     max_fields = min(max_fields, EmbedLimits.FIELDS)
