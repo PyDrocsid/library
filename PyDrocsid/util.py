@@ -229,11 +229,17 @@ class EmbedLimits:
     # https://discord.com/developers/docs/resources/channel#embed-limits
     TITLE = 256
     DESCRIPTION = 2048
+    URL = 2048
+    THUMBNAIL_URL = 2048
+    IMAGE_URL = 2048
     FIELDS = 25
     FIELD_NAME = 256
     FIELD_VALUE = 1024
     FOOTER_TEXT = 2048
+    FOOTER_ICON_URL = 2048
     AUTHOR_NAME = 256
+    AUTHOR_URL = 2048
+    AUTHOR_ICON_URL = 2048
     TOTAL = 6000
 
 
@@ -283,10 +289,24 @@ async def send_long_embed(
     # pre checks
     if len(embed.title) > EmbedLimits.TITLE - 20 * paginate:
         raise ValueError("Embed title is too long.")
-    if embed.footer and len(embed.footer.text) > EmbedLimits.FOOTER_TEXT:
-        raise ValueError("Footer text is too long.")
-    if embed.author and len(embed.author.name) > EmbedLimits.AUTHOR_NAME:
-        raise ValueError("Author name is too long.")
+    if len(embed.url) > EmbedLimits.URL:
+        raise ValueError("Embed url is too long.")
+    if embed.thumbnail and len(embed.thumbnail.url) > EmbedLimits.THUMBNAIL_URL:
+        raise ValueError("Thumbnail url is too long.")
+    if embed.image and len(embed.image.url) > EmbedLimits.IMAGE_URL:
+        raise ValueError("Image url is too long.")
+    if embed.footer:
+        if len(embed.footer.text) > EmbedLimits.FOOTER_TEXT:
+            raise ValueError("Footer text is too long.")
+        if len(embed.footer.icon_url) > EmbedLimits.FOOTER_ICON_URL:
+            raise ValueError("Footer icon_url is too long.")
+    if embed.author:
+        if len(embed.author.name) > EmbedLimits.AUTHOR_NAME:
+            raise ValueError("Author name is too long.")
+        if len(embed.author.url) > EmbedLimits.AUTHOR_URL:
+            raise ValueError("Author url is too long.")
+        if len(embed.author.icon_url) > EmbedLimits.AUTHOR_ICON_URL:
+            raise ValueError("Author icon_url is too long.")
     for i, field in enumerate(embed.fields):
         if len(field.name) > EmbedLimits.FIELD_NAME:
             raise ValueError(f"Name of field at position {i} is too long.")
