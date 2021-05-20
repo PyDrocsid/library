@@ -244,10 +244,7 @@ def load_cogs(bot: Bot, *cogs: Cog):
         logger.info("\033[1m\033[32m%s Cog%s enabled:\033[0m", len(bot.cogs), "s" * (len(bot.cogs) > 1))
         for cog in bot.cogs.values():
             commands = ", ".join(cmd.name for cmd in cog.get_commands())
-            if commands:
-                commands = f"({commands})"
-
-            logger.info(" + %s %s", cog.__class__.__name__, commands)
+            logger.info(" + %s %s", cog.__class__.__name__, commands and f"({commands})")
 
     if disabled_cogs:
         logger.info("\033[1m\033[31m%s Cog%s disabled:\033[0m", len(disabled_cogs), "s" * (len(disabled_cogs) > 1))
