@@ -1,5 +1,6 @@
 import sys
 from collections import Counter
+from functools import partial
 from os import getenv
 from pathlib import Path
 from subprocess import getoutput  # noqa: S404
@@ -11,7 +12,6 @@ from discord import Member, User
 from PyDrocsid.permission import BasePermissionLevel, PermissionLevel
 from PyDrocsid.settings import RoleSettings
 from PyDrocsid.translations import Translations
-
 
 T = TypeVar("T")
 
@@ -77,73 +77,79 @@ def load_version():
     Config.VERSION = getoutput("cat VERSION 2>/dev/null || git describe --tags --always").lstrip("v")
 
 
-def load_config_file(path: Path):
-    """Load bot configuration from a config file."""
+def load_repo(config):
+    """Load repository configuration."""
 
-    with path.open() as file:
-        config = yaml.safe_load(file)
-
-    Config.NAME = config["name"]
-
-    # repository information
     Config.REPO_OWNER = config["repo"]["owner"]
     Config.REPO_NAME = config["repo"]["name"]
     Config.REPO_LINK = f"https://github.com/{Config.REPO_OWNER}/{Config.REPO_NAME}"
     Config.REPO_ICON = config["repo"]["icon"]
 
-    Config.AUTHOR = getattr(Contributor, config["author"])
 
-    # bot language
+def load_language(config):
+    """Load language configuration."""
+
     if (lang := getenv("LANGUAGE", config["default_language"])) not in config["languages"]:
         raise ValueError(f"unknown language: {lang}")
     Translations.LANGUAGE = lang
 
-    Config.ROLES = {k: (v["name"], v["check_assignable"]) for k, v in config["roles"].items()}
 
-    # permission levels
-    permission_levels: dict[str, dict] = {
-        k: v for k, v in sorted(config["permission_levels"].items(), key=lambda x: -x[1]["level"])
-    }
+async def _get_permission_level(
+    permission_levels: dict[str, dict],
+    cls,
+    member: Union[Member, User],
+) -> BasePermissionLevel:
+    """Get the permission level of a given member."""
 
-    async def get_permission_level(cls, member: Union[Member, User]) -> BasePermissionLevel:
-        """Get the permission level of a given member."""
-
-        if not isinstance(member, Member):
-            return cls.PUBLIC
-
-        roles = {role.id for role in member.roles}
-
-        async def has_role(role_name):
-            return await RoleSettings.get(role_name) in roles
-
-        for k, v in permission_levels.items():
-            # check for required guild permissions
-            if any(getattr(member.guild_permissions, p) for p in v["if"].get("permissions", [])):
-                return getattr(cls, k.upper())
-
-            # check for required roles
-            for r in v["if"].get("roles", []):
-                if await has_role(r):
-                    return getattr(cls, k.upper())
-
+    if not isinstance(member, Member):
         return cls.PUBLIC
 
-    Config.PERMISSION_LEVELS = BasePermissionLevel(
-        "PermissionLevel",
-        {
-            **{k.upper(): PermissionLevel(v["level"], v["aliases"], v["name"]) for k, v in permission_levels.items()},
-            "PUBLIC": PermissionLevel(0, ["public", "p"], "Public"),
-            "OWNER": PermissionLevel(
-                next(iter(permission_levels.values()), {"level": 0})["level"] + 1,  # highest permission level + 1
-                ["owner"],
-                "Owner",
-            ),
-        },
+    roles = {role.id for role in member.roles}
+
+    async def has_role(role_name):
+        return await RoleSettings.get(role_name) in roles
+
+    for k, v in permission_levels.items():
+        # check for required guild permissions
+        if any(getattr(member.guild_permissions, p) for p in v["if"].get("permissions", [])):
+            return getattr(cls, k.upper())
+
+        # check for required roles
+        for r in v["if"].get("roles", []):
+            if await has_role(r):
+                return getattr(cls, k.upper())
+
+    return cls.PUBLIC
+
+
+def load_permission_levels(config):
+    """Load permission level configuration."""
+
+    permission_levels: dict[str, PermissionLevel] = {"public": PermissionLevel(0, ["public", "p"], "Public")}
+
+    # get custom permission levels from config
+    for k, v in config["permission_levels"].items():
+        permission_levels[k] = PermissionLevel(v["level"], v["aliases"], v["name"])
+
+    # add owner permission level
+    owner_level = max([pl.level for pl in permission_levels.values()], default=0) + 1
+    permission_levels["owner"] = PermissionLevel(owner_level, ["owner"], "Owner")
+
+    # sort permission levels in descending order
+    permission_levels = {
+        k.upper(): v for k, v in sorted(permission_levels.items(), key=lambda pl: pl[1].level, reverse=True)
+    }
+
+    # generate PermissionLevel enum
+    Config.PERMISSION_LEVELS = BasePermissionLevel("PermissionLevel", permission_levels)
+    Config.PERMISSION_LEVELS._get_permission_level = classmethod(
+        partial(_get_permission_level, config["permission_levels"]),
     )
-    Config.PERMISSION_LEVELS._get_permission_level = classmethod(get_permission_level)
 
     Config.DEFAULT_PERMISSION_LEVEL = getattr(Config.PERMISSION_LEVELS, config["default_permission_level"].upper())
+    Config.TEAMLER_LEVEL = getattr(Config.PERMISSION_LEVELS, config["teamler_level"].upper())
 
+    # load default permission level overrides
     for cog, overrides in config.get("default_permission_overrides", {}).items():
         for permission, level in overrides.items():
             Config.DEFAULT_PERMISSION_OVERRIDES.setdefault(cog.lower(), {}).setdefault(
@@ -151,4 +157,17 @@ def load_config_file(path: Path):
                 getattr(Config.PERMISSION_LEVELS, level.upper()),
             )
 
-    Config.TEAMLER_LEVEL = getattr(Config.PERMISSION_LEVELS, config["teamler_level"].upper())
+
+def load_config_file(path: Path):
+    """Load bot configuration from a config file."""
+
+    with path.open() as file:
+        config = yaml.safe_load(file)
+
+    Config.NAME = config["name"]
+    Config.AUTHOR = getattr(Contributor, config["author"])
+    Config.ROLES = {k: (v["name"], v["check_assignable"]) for k, v in config["roles"].items()}
+
+    load_repo(config)
+    load_language(config)
+    load_permission_levels(config)
