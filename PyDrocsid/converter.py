@@ -1,8 +1,15 @@
 import re
-from typing import Optional
+from typing import Optional, Union
 
-from discord import PartialEmoji
-from discord.ext.commands import PartialEmojiConverter, BadArgument, ColorConverter
+from discord import PartialEmoji, Member, User, Guild, NotFound, HTTPException
+from discord.ext.commands import (
+    PartialEmojiConverter,
+    BadArgument,
+    ColorConverter,
+    MemberConverter,
+    UserConverter,
+    IDConverter,
+)
 
 from PyDrocsid.emojis import emoji_to_name
 from PyDrocsid.translations import t
@@ -39,3 +46,36 @@ class Color(ColorConverter):
         if not re.match(r"^[0-9a-fA-F]{6}$", argument):
             raise BadArgument(t.invalid_color)
         return int(argument, 16)
+
+
+class UserMemberConverter(MemberConverter, UserConverter, IDConverter):
+    """Return a member or user object depending on whether the user is currently a guild member."""
+
+    async def convert(self, ctx, argument: str) -> Union[Member, User]:
+        guild: Guild = ctx.bot.guilds[0]
+
+        # try conversion to member
+        try:
+            return await MemberConverter.convert(self, ctx, argument)
+        except BadArgument:
+            pass
+
+        # try conversion to user
+        try:
+            user: User = await UserConverter.convert(self, ctx, argument)
+            return guild.get_member(user.id) or user
+        except BadArgument:
+            pass
+
+        # convert to id
+        if not (id_match := self._get_id_match(argument)):
+            raise BadArgument(t.user_not_found)
+
+        # find user/member by id
+        user_id: int = int(id_match.group(1))
+        if member := guild.get_member(user_id):
+            return member
+        try:
+            return await ctx.bot.fetch_user(user_id)
+        except (NotFound, HTTPException):
+            raise BadArgument(t.user_not_found)
