@@ -12,6 +12,12 @@ from PyDrocsid.translations import t
 t = t.g
 
 
+class UserCommandError(CommandError):
+    def __init__(self, user: Union[Member, User], message=None, *args):
+        super().__init__(message, *args)
+        self.user = user
+
+
 def docs(text: str):
     """Decorator for setting the docstring of a function."""
 
