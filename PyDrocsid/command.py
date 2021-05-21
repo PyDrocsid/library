@@ -3,6 +3,7 @@ from contextlib import asynccontextmanager
 from copy import deepcopy
 from typing import Union
 
+from PyDrocsid.permission import BasePermission
 from discord import User, Member, Embed, Message, Forbidden
 from discord.abc import Messageable
 from discord.ext.commands import Command, Context, CommandError
@@ -12,7 +13,7 @@ from PyDrocsid.command_edit import link_response
 from PyDrocsid.environment import REPLY, MENTION_AUTHOR
 from PyDrocsid.material_colors import MaterialColors
 from PyDrocsid.translations import t
-from library.PyDrocsid.emojis import name_to_emoji
+from PyDrocsid.emojis import name_to_emoji
 
 t = t.g
 
@@ -31,6 +32,22 @@ def docs(text: str):
         return f
 
     return deco
+
+
+def optional_permissions(*permissions: BasePermission):
+    """Decorator for setting optional permissions of a command."""
+
+    def deco(f):
+        f.optional_permissions = list(permissions)
+        return f
+
+    return deco
+
+
+def get_optional_permissions(command: Command) -> list[BasePermission]:
+    """Get the optional permissions of a given command, set by the optional_permissions decorator."""
+
+    return getattr(command.callback, "optional_permissions", [])
 
 
 def make_error(message: str, user: Union[Member, User, None] = None) -> Embed:

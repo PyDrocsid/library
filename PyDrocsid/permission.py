@@ -167,7 +167,6 @@ class BasePermissionLevel(Enum):
 def check_permission_level(level: Union[BasePermission, BasePermissionLevel]):
     """Discord commmand check to require a given level when invoking the command."""
 
-    @check
     async def inner(ctx: Context):
         member: Union[Member, User] = ctx.author
         if not isinstance(member, Member):
@@ -177,4 +176,6 @@ def check_permission_level(level: Union[BasePermission, BasePermissionLevel]):
 
         return True
 
-    return inner
+    inner.level = level
+
+    return check(inner)
