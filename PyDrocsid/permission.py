@@ -106,7 +106,7 @@ class BasePermission(Enum):
         return check_permission_level(self)
 
 
-PermissionLevel = namedtuple("PermissionLevel", ["level", "aliases", "description"])
+PermissionLevel = namedtuple("PermissionLevel", ["level", "aliases", "description", "guild_permissions", "roles"])
 
 
 class BasePermissionLevel(Enum):
@@ -121,6 +121,14 @@ class BasePermissionLevel(Enum):
     @property
     def description(self) -> str:
         return self.value.description
+
+    @property
+    def guild_permissions(self) -> list[str]:
+        return self.value.guild_permissions
+
+    @property
+    def roles(self) -> list[str]:
+        return self.value.roles
 
     @classmethod
     async def get_permission_level(cls, member: Union[Member, User]) -> BasePermissionLevel:
