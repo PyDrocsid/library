@@ -100,31 +100,44 @@ async def reply(ctx: Union[Context, Message, Messageable], *args, no_reply: bool
 
 @asynccontextmanager
 async def confirm(ctx: Context, embed: Embed, timeout: int = 300):
+    """
+    Send an embed, add confirmation reactions (:white_check_mark: and :x:) and wait for a reaction of the author.
+    Yield True or False, depending on whether the author reacted with :white_check_mark: or :x:.
+    Update the message if the embed has been modified and remove all reactions.
+    """
+
+    # create a copy of the embed so that we can check later if it has been edited
     _embed: dict = deepcopy(embed.to_dict())
+
+    # send embed and add reactions
     message: Message = await reply(ctx, embed=embed)
     await message.add_reaction(yes := name_to_emoji["white_check_mark"])
     await message.add_reaction(no := name_to_emoji["x"])
 
-    def check(r, u):
-        return r.message == message and u == ctx.author and str(r) in [yes, no]
-
+    # wait for either a confirmation reaction, or the deletion of the message, or the expiration of the timeout
     i, result = await gather_any(
-        ctx.bot.wait_for("reaction_add", check=check),
+        ctx.bot.wait_for(
+            "reaction_add",
+            check=lambda r, u: r.message == message and u == ctx.author and str(r) in [yes, no],
+        ),
         ctx.bot.wait_for("message_delete", check=lambda msg: msg == message),
         asyncio.sleep(timeout),
     )
 
-    if i == 0:
+    if i == 0:  # confirmation reaction
         reaction, _ = result
         yield str(reaction) == yes
-    else:
+    else:  # message deleted or timeout expired
         yield False
-    if i == 1:
+
+    if i == 1:  # message deleted
         return
 
+    # edit message if embed has been modified
     if embed.to_dict() != _embed:
         await message.edit(embed=embed)
 
+    # remove reactions
     try:
         await message.clear_reactions()
     except Forbidden:
