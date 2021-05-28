@@ -16,9 +16,17 @@ error: ":x: Error"
 x_days:
   one: "{cnt} day"
   many: "{cnt} days"
+private_only: This command can only be used in direct messages.
 
 role_assignment_error:
   no_permissions: I cannot manage this role because I don't have `manage_roles` permission on this server.
   higher: I cannot manage this role because `@{}` is higher than `@{}`.
   highest: I cannot manage this role because `@{}` is my highest role.
   managed_role: I cannot manage this role because `@{}` is controlled by an integration.
+
+wrong_guild_context:
+  error_message: This command can only be used {}.
+  conj: or
+  guild: directly in servers
+  private_guild: in direct messages (global server prefix)
+  private_global: in direct messages (no prefix)
