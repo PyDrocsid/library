@@ -95,7 +95,7 @@ def load_language(config):
 
 
 async def _get_permission_level(
-    permission_levels: dict[str, dict],
+    permission_levels: dict[str, PermissionLevel],
     cls,
     member: Union[Member, User],
 ) -> BasePermissionLevel:
@@ -111,11 +111,11 @@ async def _get_permission_level(
 
     for k, v in permission_levels.items():
         # check for required guild permissions
-        if any(getattr(member.guild_permissions, p) for p in v["if"].get("permissions", [])):
+        if any(getattr(member.guild_permissions, p) for p in v.guild_permissions):
             return getattr(cls, k.upper())
 
         # check for required roles
-        for r in v["if"].get("roles", []):
+        for r in v.roles:
             if await has_role(r):
                 return getattr(cls, k.upper())
 
@@ -125,15 +125,24 @@ async def _get_permission_level(
 def load_permission_levels(config):
     """Load permission level configuration."""
 
-    permission_levels: dict[str, PermissionLevel] = {"public": PermissionLevel(0, ["public", "p"], "Public")}
+    permission_levels: dict[str, PermissionLevel] = {"public": PermissionLevel(0, ["public", "p"], "Public", [], [])}
 
     # get custom permission levels from config
     for k, v in config["permission_levels"].items():
-        permission_levels[k] = PermissionLevel(v["level"], v["aliases"], v["name"])
+        if v["level"] <= 0:
+            raise ValueError(f"Invalid permission level: {v['level']} ({k})")
+
+        permission_levels[k] = PermissionLevel(
+            v["level"],
+            v["aliases"],
+            v["name"],
+            v["if"].get("permissions", []),
+            v["if"].get("roles", []),
+        )
 
     # add owner permission level
     owner_level = max([pl.level for pl in permission_levels.values()], default=0) + 1
-    permission_levels["owner"] = PermissionLevel(owner_level, ["owner"], "Owner")
+    permission_levels["owner"] = PermissionLevel(owner_level, ["owner"], "Owner", [], [])
 
     # sort permission levels in descending order
     permission_levels = {
@@ -143,7 +152,7 @@ def load_permission_levels(config):
     # generate PermissionLevel enum
     Config.PERMISSION_LEVELS = BasePermissionLevel("PermissionLevel", permission_levels)
     Config.PERMISSION_LEVELS._get_permission_level = classmethod(
-        partial(_get_permission_level, config["permission_levels"]),
+        partial(_get_permission_level, permission_levels),
     )
 
     Config.DEFAULT_PERMISSION_LEVEL = getattr(Config.PERMISSION_LEVELS, config["default_permission_level"].upper())

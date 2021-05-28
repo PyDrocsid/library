@@ -2,7 +2,7 @@ import threading
 from asyncio import Semaphore, Lock, Event, get_running_loop, AbstractEventLoop, gather, create_task
 
 from functools import partial, update_wrapper, wraps
-from typing import Callable, TypeVar, Optional, Coroutine
+from typing import Callable, TypeVar, Optional, Coroutine, Awaitable
 
 T = TypeVar("T")
 
@@ -93,3 +93,28 @@ def run_as_task(func):
         create_task(func(*args, **kwargs))
 
     return inner
+
+
+async def gather_any(*coroutines: Awaitable[T]) -> tuple[int, T]:
+    """
+    Like asyncio.gather, but returns after the first coroutine is done.
+
+    :param coroutines: the coroutines to run
+    :return: a tuple containing the index of the coroutine that has finished and its result
+    """
+
+    event = Event()
+    result: list[tuple[int, T]] = []
+
+    async def inner(i: int, coro: Awaitable[T]):
+        result.append((i, await coro))
+        event.set()
+
+    tasks = [create_task(inner(i, c)) for i, c in enumerate(coroutines)]
+    await event.wait()
+
+    for task in tasks:
+        if not task.done():
+            task.cancel()
+
+    return result[0]
