@@ -8,10 +8,11 @@ from discord import Guild, Message
 from discord.ext.commands import check, Context, CheckFailure, Bot
 from sqlalchemy import Column, BigInteger, String
 
-from PyDrocsid.database import db, delete
+from PyDrocsid.database import db
+from PyDrocsid.environment import CACHE_TTL
+from PyDrocsid.redis import redis
 from PyDrocsid.settings import Settings
 from PyDrocsid.translations import t
-
 
 t = t.g
 
@@ -40,31 +41,62 @@ class GlobalPrefix(db.Base):
 
     @staticmethod
     async def get_prefix(guild_id: int) -> Optional[str]:
-        if row := await db.get(GlobalPrefix, guild_id=guild_id):
-            return row.prefix
+        if (result := await redis.get(f"global_prefix:guild_id={guild_id}")) is not None:
+            return result or None
 
-        return None
+        result = None
+        if row := await db.get(GlobalPrefix, guild_id=guild_id):
+            result = row.prefix
+
+        await redis.setex(f"global_prefix:guild_id={guild_id}", CACHE_TTL, result or "")
+
+        return result
 
     @staticmethod
     async def get_guild(prefix: str) -> Optional[int]:
-        if row := await db.get(GlobalPrefix, prefix=prefix):
-            return row.guild_id
+        if (result := await redis.get(f"global_prefix:prefix={prefix}")) is not None:
+            result = int(result)
+            return result if result != -1 else None
 
-        return None
+        result = None
+        if row := await db.get(GlobalPrefix, prefix=prefix):
+            result = row.guild_id
+
+        await redis.setex(f"global_prefix:prefix={prefix}", CACHE_TTL, result or -1)
+
+        return result
 
     @staticmethod
     async def set_prefix(guild_id: int, prefix: str) -> GlobalPrefix:
+        old_prefix = None
         if not (row := await db.get(GlobalPrefix, guild_id=guild_id)):
             row = GlobalPrefix(guild_id=guild_id, prefix=prefix)
             await db.add(row)
         else:
+            old_prefix = row.prefix
             row.prefix = prefix
+
+        p = redis.pipeline()
+        if old_prefix:
+            p.setex(f"global_prefix:prefix={old_prefix}", CACHE_TTL, -1)
+        p.setex(f"global_prefix:guild_id={guild_id}", CACHE_TTL, prefix)
+        p.setex(f"global_prefix:prefix={prefix}", CACHE_TTL, guild_id)
+        await p.execute()
 
         return row
 
     @staticmethod
     async def clear_prefix(guild_id: int):
-        await db.exec(delete(GlobalPrefix).filter_by(guild_id=guild_id))
+        row: Optional[GlobalPrefix] = await db.get(GlobalPrefix, guild_id=guild_id)
+        if not row:
+            return
+
+        p = redis.pipeline()
+        p.setex(f"global_prefix:guild_id={guild_id}", CACHE_TTL, "")
+        p.setex(f"global_prefix:prefix={row.prefix}", CACHE_TTL, -1)
+        await p.execute()
+
+        await db.delete(row)
 
 
 class GuildContext(Flag):
