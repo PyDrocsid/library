@@ -126,9 +126,9 @@ async def confirm(ctx: Context, embed: Embed, timeout: int = 300):
 
     if i == 0:  # confirmation reaction
         reaction, _ = result
-        yield str(reaction) == yes
+        yield str(reaction) == yes, message
     else:  # message deleted or timeout expired
-        yield False
+        yield False, None
 
     if i == 1:  # message deleted
         return
