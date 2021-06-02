@@ -22,3 +22,9 @@ role_assignment_error:
   higher: I cannot manage this role because `@{}` is higher than `@{}`.
   highest: I cannot manage this role because `@{}` is my highest role.
   managed_role: I cannot manage this role because `@{}` is controlled by an integration.
+
+message_send_permission_error:
+  cannot_view_channel: I don't have `view_channel` permission in {}.
+  could_not_send_message: Message could not be sent because I don't have `send_messages` permission in {}.
+  could_not_send_file: Message could not be sent because I don't have `attach_files` permission in {}.
+  could_not_send_embed: Message could not be sent because I don't have `embed_links` permission in {}.

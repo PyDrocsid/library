@@ -4,7 +4,19 @@ from socket import gethostbyname, socket, AF_INET, SOCK_STREAM, timeout, SHUT_RD
 from time import time
 from typing import Optional, List, Tuple
 
-from discord import Embed, Message, File, Attachment, TextChannel, Member, PartialEmoji, Forbidden, Role, Guild
+from discord import (
+    Embed,
+    Message,
+    File,
+    Attachment,
+    TextChannel,
+    Member,
+    PartialEmoji,
+    Forbidden,
+    Role,
+    Guild,
+    Permissions,
+)
 from discord.abc import Messageable
 from discord.ext.commands import CommandError, Bot
 
@@ -203,3 +215,20 @@ def check_role_assignable(role: Role):
         raise CommandError(t.role_assignment_error.highest(role))
     if role.managed or role == guild.default_role:
         raise CommandError(t.role_assignment_error.managed_role(role))
+
+
+def check_message_send_permissions(
+    channel: TextChannel,
+    check_send: bool = True,
+    check_file: bool = False,
+    check_embed: bool = False,
+):
+    permissions: Permissions = channel.permissions_for(channel.guild.me)
+    if not permissions.view_channel:
+        raise CommandError(t.message_send_permission_error.cannot_view_channel(channel.mention))
+    if check_send and not permissions.send_messages:
+        raise CommandError(t.message_send_permission_error.could_not_send_message(channel.mention))
+    if check_file and not permissions.attach_files:
+        raise CommandError(t.message_send_permission_error.could_not_send_file(channel.mention))
+    if check_embed and not permissions.embed_links:
+        raise CommandError(t.message_send_permission_error.could_not_send_embed(channel.mention))
