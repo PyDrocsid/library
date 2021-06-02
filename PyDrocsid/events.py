@@ -290,7 +290,8 @@ async def call_event_handlers(event: str, *args, identifier=None, prepare=None) 
     :return: True if all handlers for this event have been called without raising StopEventHandling, otherwise False
     """
 
-    async with handler_lock[(event, identifier) if identifier is not None else None]:
+    identifier = (event, identifier) if identifier is not None else None
+    async with handler_lock[identifier]:
         if prepare is not None:
             args = await prepare()
             if args is None:
@@ -301,6 +302,11 @@ async def call_event_handlers(event: str, *args, identifier=None, prepare=None) 
                 await handler(*args)
             except StopEventHandling:
                 return False
+            except PermissionError as e:
+                if event == "permission_error":
+                    raise
+
+                await call_event_handlers("permission_error", *e.args, identifier=("permission_error", identifier))
 
         return True
 
