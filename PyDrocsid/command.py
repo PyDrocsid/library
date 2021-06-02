@@ -4,7 +4,7 @@ from copy import deepcopy
 from typing import Union
 
 from PyDrocsid.permission import BasePermission
-from discord import User, Member, Embed, Message, Forbidden
+from discord import User, Member, Embed, Message, Forbidden, TextChannel
 from discord.abc import Messageable
 from discord.ext.commands import Command, Context, CommandError
 
@@ -14,6 +14,7 @@ from PyDrocsid.environment import REPLY, MENTION_AUTHOR
 from PyDrocsid.material_colors import MaterialColors
 from PyDrocsid.translations import t
 from PyDrocsid.emojis import name_to_emoji
+from PyDrocsid.util import check_message_send_permissions
 
 t = t.g
 
@@ -86,6 +87,16 @@ async def reply(ctx: Union[Context, Message, Messageable], *args, no_reply: bool
     :param kwargs: keyword arguments to pass to ctx.send/ctx.reply
     :return: the message that was sent
     """
+
+    if isinstance(channel := ctx.channel if isinstance(ctx, (Message, Context)) else ctx, TextChannel):
+        try:
+            check_message_send_permissions(
+                channel,
+                check_file=bool(kwargs.get("file")),
+                check_embed=bool(kwargs.get("embed")),
+            )
+        except CommandError as e:
+            raise PermissionError(channel.guild, e.args[0])
 
     if REPLY and isinstance(ctx, (Context, Message)) and not no_reply:
         msg = await ctx.reply(*args, **kwargs, mention_author=MENTION_AUTHOR)
