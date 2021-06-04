@@ -1,4 +1,5 @@
 from contextlib import asynccontextmanager
+from asyncio import Event
 from contextvars import ContextVar
 from functools import wraps, partial
 from typing import TypeVar, Optional, Type
@@ -8,6 +9,7 @@ from sqlalchemy.engine import URL
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, AsyncEngine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.future import select as sa_select, Select
+from sqlalchemy.orm import selectinload
 from sqlalchemy.sql import Executable
 from sqlalchemy.sql.expression import exists as sa_exists, delete as sa_delete, Delete
 from sqlalchemy.sql.functions import count
@@ -32,16 +34,24 @@ T = TypeVar("T")
 logger = get_logger(__name__)
 
 
-def select(*entities, **kwargs) -> Select:
+def select(entity, *args) -> Select:
     """Shortcut for :meth:`sqlalchemy.future.select`"""
 
-    return sa_select(*entities, **kwargs)
+    if not args:
+        return sa_select(entity)
+
+    first, *args = args
+    options = selectinload(first)
+    for arg in args:
+        options = options.selectinload(arg)
+
+    return sa_select(entity).options(options)
 
 
-def filter_by(cls, **kwargs) -> Select:
-    """Shortcut for select().filer_by()"""
+def filter_by(cls, *args, **kwargs) -> Select:
+    """Shortcut for :meth:`sqlalchemy.future.Select.filter_by`"""
 
-    return select(cls).filter_by(**kwargs)
+    return select(cls, *args).filter_by(**kwargs)
 
 
 def exists(*entities, **kwargs) -> Exists:
@@ -108,6 +118,7 @@ class DB:
         self.Base = declarative_base()
 
         self._session: ContextVar[Optional[AsyncSession]] = ContextVar("session", default=None)
+        self._close_event: ContextVar[Optional[Event]] = ContextVar("close_event", default=None)
 
     async def create_tables(self):
         """Create all tables defined in enabled cog packages."""
@@ -171,10 +182,10 @@ class DB:
 
         return await self.first(select(count()).select_from(*args, **kwargs))
 
-    async def get(self, cls: Type[T], **kwargs) -> Optional[T]:
+    async def get(self, cls: Type[T], *args, **kwargs) -> Optional[T]:
         """Shortcut for first(filter_by(...))"""
 
-        return await self.first(filter_by(cls, **kwargs))
+        return await self.first(filter_by(cls, *args, **kwargs))
 
     async def commit(self):
         """Shortcut for :meth:`sqlalchemy.ext.asyncio.AsyncSession.commit`"""
@@ -187,11 +198,13 @@ class DB:
 
         if self._session.get():
             await self.session.close()
+            self._close_event.get().set()
 
     def create_session(self) -> AsyncSession:
         """Create a new async session and store it in the context variable."""
 
         self._session.set(session := AsyncSession(self.engine))
+        self._close_event.set(Event())
         return session
 
     @property
@@ -199,6 +212,9 @@ class DB:
         """Get the session object for the current task"""
 
         return self._session.get()
+
+    async def wait_for_close_event(self):
+        await self._close_event.get().wait()
 
 
 @asynccontextmanager
