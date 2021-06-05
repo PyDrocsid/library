@@ -171,7 +171,7 @@ async def send_editable_log(
         embed: Embed = messages[0].embeds[0]
 
         # if name or description don't match, a new embed must be created
-        if embed.title == title and embed.description == description:
+        if (embed.title or "") == title and (embed.description or "") == description:
 
             if embed.fields and embed.fields[-1].name == name and not force_new_field:
                 # can edit last field
