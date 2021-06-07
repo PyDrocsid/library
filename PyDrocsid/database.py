@@ -40,12 +40,18 @@ def select(entity, *args) -> Select:
     if not args:
         return sa_select(entity)
 
-    first, *args = args
-    options = selectinload(first)
+    options = []
     for arg in args:
-        options = options.selectinload(arg)
+        if isinstance(arg, (tuple, list)):
+            head, *tail = arg
+            opt = selectinload(head)
+            for x in tail:
+                opt = opt.selectinload(x)
+            options.append(opt)
+        else:
+            options.append(selectinload(arg))
 
-    return sa_select(entity).options(options)
+    return sa_select(entity).options(*options)
 
 
 def filter_by(cls, *args, **kwargs) -> Select:
