@@ -1,5 +1,5 @@
 from copy import deepcopy
-from typing import List, Optional
+from typing import List, Optional, Union
 
 from discord import Embed, Message
 from discord.abc import Messageable
@@ -78,7 +78,7 @@ class EmbedLimits:
 
 
 async def send_long_embed(
-    channel: Messageable,
+    channel: Union[Messageable, Message],
     embed: Embed,
     *,
     repeat_title: bool = False,
