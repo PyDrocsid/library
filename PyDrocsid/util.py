@@ -150,7 +150,7 @@ async def send_editable_log(
     force_resend: bool = False,
     force_new_embed: bool = False,
     force_new_field: bool = False,
-):
+) -> Message:
     """
     Send a log embed into a given channel which can be updated later.
 
@@ -190,15 +190,14 @@ async def send_editable_log(
             if not force_new_embed:
                 if force_resend:
                     await messages[0].delete()
-                    await channel.send(embed=embed)
-                    return
+                    return await channel.send(embed=embed)
                 await messages[0].edit(embed=embed)
-                return
+                return messages[0]
 
     # create and send a new embed
     embed = Embed(title=title, description=description, colour=colour if colour is not None else 0x008080)
     embed.add_field(name=name, value=value, inline=inline)
-    await channel.send(embed=embed)
+    return await channel.send(embed=embed)
 
 
 def check_role_assignable(role: Role):
