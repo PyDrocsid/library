@@ -95,6 +95,12 @@ def run_as_task(func):
     return inner
 
 
+class GatherAnyException(Exception):
+    def __init__(self, idx: int, exception: Exception):
+        self.idx: int = idx
+        self.exception: Exception = exception
+
+
 async def gather_any(*coroutines: Awaitable[T]) -> tuple[int, T]:
     """
     Like asyncio.gather, but returns after the first coroutine is done.
@@ -104,10 +110,14 @@ async def gather_any(*coroutines: Awaitable[T]) -> tuple[int, T]:
     """
 
     event = Event()
-    result: list[tuple[int, T]] = []
+    result: list[tuple[int, bool, T]] = []
 
     async def inner(i: int, coro: Awaitable[T]):
-        result.append((i, await coro))
+        # noinspection PyBroadException
+        try:
+            result.append((i, True, await coro))
+        except Exception as e:
+            result.append((i, False, e))
         event.set()
 
     tasks = [create_task(inner(i, c)) for i, c in enumerate(coroutines)]
@@ -117,4 +127,8 @@ async def gather_any(*coroutines: Awaitable[T]) -> tuple[int, T]:
         if not task.done():
             task.cancel()
 
-    return result[0]
+    idx, ok, value = result[0]
+    if not ok:
+        raise GatherAnyException(idx, value)
+
+    return idx, value
