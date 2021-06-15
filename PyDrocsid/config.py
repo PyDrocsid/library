@@ -25,6 +25,7 @@ class Contributor:
     wolflu = (339062431131369472, "MDQ6VXNlcjYwMDQ4NTY1")
     MaxiHuHe04 = (302365095688798209, "MDQ6VXNlcjEyOTEzNTE4")
     ce_phox = (306774624090456075, "MDQ6VXNlcjQwNTE2OTkx")
+    DELTA = (158634035180994560, "MDQ6VXNlcjU4OTA2NDM3")
 
 
 class Config:
@@ -49,6 +50,7 @@ class Config:
             Contributor.wolflu: 50,
             Contributor.MaxiHuHe04: 10,
             Contributor.ce_phox: 10,
+            Contributor.DELTA: 10,
         },
     )
 
