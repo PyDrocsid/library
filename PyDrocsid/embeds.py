@@ -1,7 +1,7 @@
 from copy import deepcopy
 from typing import List, Optional, Union
 
-from discord import Embed, Message
+from discord import Embed, Message, User
 from discord.abc import Messageable
 from discord.embeds import EmptyEmbed
 
@@ -87,6 +87,7 @@ async def send_long_embed(
     repeat_image: bool = False,
     repeat_footer: bool = False,
     paginate: bool = False,
+    pagination_user: Optional[User] = None,
     max_fields: int = 25,
 ) -> List[Message]:
     """
@@ -100,6 +101,7 @@ async def send_long_embed(
     :param repeat_image: whether to repeat the image in every embed
     :param repeat_footer: whether to repeat the footer in every embed
     :param paginate: whether to use pagination instead of multiple messages
+    :param pagination_user: the user who should be able to control the pagination
     :param max_fields: the maximum number of fields an embed is allowed to have
     :return: list of all messages that have been sent
     """
@@ -253,5 +255,5 @@ async def send_long_embed(
 
     # send first embed and create pagination
     message = await reply(channel, embed=embeds[0])
-    await create_pagination(message, embeds)
+    await create_pagination(message, pagination_user, embeds)
     return [message]

@@ -1,6 +1,6 @@
 import json
 from asyncio import create_task, gather
-from typing import Union
+from typing import Union, Optional
 
 from discord import Message, Embed, PartialEmoji, User, Member
 
@@ -10,11 +10,12 @@ from PyDrocsid.events import listener
 from PyDrocsid.redis import redis
 
 
-async def create_pagination(message: Message, embeds: list[Embed]):
+async def create_pagination(message: Message, pagination_user: Optional[User], embeds: list[Embed]):
     """
     Create embed pagination on a message.
 
     :param message: the message which should be paginated
+    :param pagination_user: the user who should be able to control the pagination
     :param embeds: a list of embeds
     """
 
@@ -27,6 +28,7 @@ async def create_pagination(message: Message, embeds: list[Embed]):
     for embed in embeds:
         p.rpush(key + "embeds", json.dumps(embed.to_dict()))
     p.expire(key + "embeds", PAGINATION_TTL)
+    p.setex(key + "user", PAGINATION_TTL, pagination_user.id if pagination_user else -1)
     await p.execute()
 
     # add navigation reactions
@@ -54,6 +56,10 @@ async def on_raw_reaction_add(message: Message, emoji: PartialEmoji, user: Union
 
     # return if this is no pagination message
     if not (idx := await redis.get(key + "index")) or not (length := await redis.get(key + "len")):
+        return
+
+    if (pagination_user := await redis.get(key + "user")) != -1 and pagination_user != str(user.id):
+        create_task(message.remove_reaction(emoji, user))
         return
 
     # enable 1 second cooldown
