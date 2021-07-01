@@ -58,7 +58,7 @@ async def on_raw_reaction_add(message: Message, emoji: PartialEmoji, user: Union
     if not (idx := await redis.get(key + "index")) or not (length := await redis.get(key + "len")):
         return
 
-    if (pagination_user := await redis.get(key + "user")) != -1 and pagination_user != str(user.id):
+    if (pagination_user := await redis.get(key + "user")) != "-1" and pagination_user != str(user.id):
         create_task(message.remove_reaction(emoji, user))
         return
 
