@@ -39,7 +39,7 @@ class Color(ColorConverter):
 
     async def convert(self, ctx, argument: str) -> Optional[int]:
         try:
-            return await super().convert(ctx, argument)
+            return (await super().convert(ctx, argument)).value
         except BadArgument:
             pass
 
