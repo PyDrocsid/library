@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 import sys
 from datetime import datetime
 from typing import Union, Type, Optional, Callable, Awaitable
@@ -250,3 +251,17 @@ def load_cogs(bot: Bot, *cogs: Cog):
         logger.info("\033[1m\033[31m%s Cog%s disabled:\033[0m", len(disabled_cogs), "s" * (len(disabled_cogs) > 1))
         for name in disabled_cogs:
             logger.info(" - %s", name.__class__.__name__)
+
+
+def get_documentation(cog: Union[Cog, Type[Cog]]) -> Optional[str]:
+    if isinstance(cog, Cog):
+        cog = type(cog)
+
+    for cls in cog.mro():
+        if match := re.match(
+            r"^cogs\.[a-zA-Z\d\-_]+\.([a-zA-Z\d\-_]+)\.([a-zA-Z\d\-_]+)\.cog$",
+            cls.__module__,
+        ):
+            return f"https://docs.pydrocsid.ml/cogs/{match.group(1)}/{match.group(2)}/"
+
+    return None
