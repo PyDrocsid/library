@@ -33,6 +33,11 @@ def command_emoji(emoji: str):
     return deco
 
 
+def no_documentation(f):
+    f.no_documentation = True
+    return f
+
+
 def docs(text: str):
     """Decorator for setting the docstring of a function."""
 
