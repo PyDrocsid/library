@@ -3,17 +3,17 @@ from contextlib import asynccontextmanager
 from copy import deepcopy
 from typing import Union
 
-from PyDrocsid.permission import BasePermission
 from discord import User, Member, Embed, Message, Forbidden, TextChannel
 from discord.abc import Messageable
 from discord.ext.commands import Command, Context, CommandError
 
 from PyDrocsid.async_thread import gather_any
 from PyDrocsid.command_edit import link_response
+from PyDrocsid.emojis import name_to_emoji
 from PyDrocsid.environment import REPLY, MENTION_AUTHOR
 from PyDrocsid.material_colors import MaterialColors
+from PyDrocsid.permission import BasePermission
 from PyDrocsid.translations import t
-from PyDrocsid.emojis import name_to_emoji
 from PyDrocsid.util import check_message_send_permissions
 
 t = t.g
@@ -23,6 +23,19 @@ class UserCommandError(CommandError):
     def __init__(self, user: Union[Member, User], message=None, *args):
         super().__init__(message, *args)
         self.user = user
+
+
+def command_emoji(emoji: str):
+    def deco(f):
+        f.emoji = emoji
+        return f
+
+    return deco
+
+
+def no_documentation(f):
+    f.no_documentation = True
+    return f
 
 
 def docs(text: str):
