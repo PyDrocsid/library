@@ -81,6 +81,7 @@ async def send_long_embed(
     channel: Union[Messageable, Message],
     embed: Embed,
     *,
+    content: Optional[str] = None,
     repeat_title: bool = False,
     repeat_thumbnail: bool = False,
     repeat_name: bool = False,
@@ -95,6 +96,7 @@ async def send_long_embed(
 
     :param channel: the channel into which the messages should be sent
     :param embed: the embed to send
+    :param content: the content of the first message
     :param repeat_title: whether to repeat the embed title in every embed
     :param repeat_thumbnail: whether to repeat the thumbnail image in every embed
     :param repeat_name: whether to repeat field names in every embed
@@ -247,13 +249,13 @@ async def send_long_embed(
 
     # don't use pagination if there is only one embed
     if not paginate or len(embeds) <= 1:
-        return [await reply(channel, embed=e) for e in embeds]
+        return [await reply(channel, embed=e, content=content if not i else None) for i, e in enumerate(embeds)]
 
     # add page numbers to embed titles
     for i, embed in enumerate(embeds):
         embed.title += f" ({i + 1}/{len(embeds)})"
 
     # send first embed and create pagination
-    message = await reply(channel, embed=embeds[0])
+    message = await reply(channel, content=content, embed=embeds[0])
     await create_pagination(message, pagination_user, embeds)
     return [message]
