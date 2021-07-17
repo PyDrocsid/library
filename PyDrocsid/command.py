@@ -11,6 +11,7 @@ from PyDrocsid.async_thread import gather_any
 from PyDrocsid.command_edit import link_response
 from PyDrocsid.emojis import name_to_emoji
 from PyDrocsid.environment import REPLY, MENTION_AUTHOR
+from PyDrocsid.events import call_event_handlers
 from PyDrocsid.material_colors import MaterialColors
 from PyDrocsid.permission import BasePermission
 from PyDrocsid.translations import t
@@ -120,6 +121,24 @@ async def reply(ctx: Union[Context, Message, Messageable], *args, no_reply: bool
         await link_response(ctx, msg)
 
     return msg
+
+
+async def add_reactions(ctx: Union[Context, Message], *emojis: str):
+    """
+    Add reactions to a given message.
+
+    :param ctx: the message or context
+    :param emojis: emoji names to react with
+    """
+
+    message: Message = ctx if isinstance(ctx, Message) else ctx.message
+
+    for emoji in emojis:
+        try:
+            await message.add_reaction(name_to_emoji[emoji])
+        except Forbidden:
+            await call_event_handlers("permission_error", ctx.guild, t.could_not_add_reaction(message.channel.mention))
+            break
 
 
 @asynccontextmanager
