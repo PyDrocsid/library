@@ -1,8 +1,9 @@
-import os
 import json
 import re
+import sys
 from html.parser import HTMLParser
 from json import JSONDecodeError
+from pathlib import Path
 from urllib.request import Request, urlopen
 
 EMOJI_JSON_REGEX = re.compile(r'{("\w+":\[({"names":.+"surrogates":.+},)*{"names":.+"surrogates":.+}])+}')
@@ -68,10 +69,10 @@ if __name__ == "__main__":
 
     if not emoji_json:
         print("Emoji map could not be found")
-        exit(1)
+        sys.exit(1)
 
     result = convert_emoji_map(emoji_json)
     print(f"Found {len(result)} emojis including variations")
 
-    with open(os.path.join(os.path.dirname(__file__), "emoji_map.json"), mode="w", encoding="utf-8") as out_file:
-        json.dump(result, out_file)
+    with Path(__file__).parent.joinpath("PyDrocsid/emoji_map.json").open("w") as file:
+        json.dump(result, file)

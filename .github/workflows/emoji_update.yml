@@ -25,7 +25,7 @@ jobs:
       - name: Run emoji map update script
         id: run_update_script
         run: |
-          python PyDrocsid/emoji_update.py
+          python emoji_update.py
           if git diff -s --exit-code PyDrocsid/emoji_map.json; then
               echo "::set-output name=map_changed::false"
               echo "Emoji map did not change."
