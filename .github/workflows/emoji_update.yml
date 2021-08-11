@@ -11,6 +11,7 @@ env:
 jobs:
   update-emojis:
     runs-on: ubuntu-latest
+    environment: update-emojis
     steps:
       - name: Checkout
         uses: actions/checkout@v2.3.4
@@ -37,6 +38,7 @@ jobs:
         uses: peter-evans/create-pull-request@v3
         if: ${{ steps.run_update_script.outputs.map_changed == 'true' }}
         with:
+          token: ${{ secrets.TOKEN }}
           commit-message: Updated the emoji map
           branch: update-emojis
           title: Updated the emoji map
