@@ -41,3 +41,4 @@ jobs:
           branch: update-emojis
           title: Updated the emoji map
           body: ''
+          author: 'GitHub <noreply@github.com>'
