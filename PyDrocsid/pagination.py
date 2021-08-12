@@ -22,14 +22,14 @@ async def create_pagination(message: Message, pagination_user: Optional[User], e
     key = f"pagination:channel={message.channel.id},msg={message.id}:"
 
     # save index, length and embeds in redis
-    p = redis.pipeline()
-    p.setex(key + "index", PAGINATION_TTL, 0)
-    p.setex(key + "len", PAGINATION_TTL, len(embeds))
-    for embed in embeds:
-        p.rpush(key + "embeds", json.dumps(embed.to_dict()))
-    p.expire(key + "embeds", PAGINATION_TTL)
-    p.setex(key + "user", PAGINATION_TTL, pagination_user.id if pagination_user else -1)
-    await p.execute()
+    async with redis.pipeline() as pipe:
+        await pipe.setex(key + "index", PAGINATION_TTL, 0)
+        await pipe.setex(key + "len", PAGINATION_TTL, len(embeds))
+        for embed in embeds:
+            await pipe.rpush(key + "embeds", json.dumps(embed.to_dict()))
+        await pipe.expire(key + "embeds", PAGINATION_TTL)
+        await pipe.setex(key + "user", PAGINATION_TTL, pagination_user.id if pagination_user else -1)
+        await pipe.execute()
 
     # add navigation reactions
     if len(embeds) > 2:
@@ -86,12 +86,12 @@ async def on_raw_reaction_add(message: Message, emoji: PartialEmoji, user: Union
     if not (embed_json := await redis.lrange(key + "embeds", idx, idx)):
         return
 
-    # update index and reset redis expiration
-    p = redis.pipeline()
-    p.setex(key + "index", PAGINATION_TTL, idx)
-    p.expire(key + "len", PAGINATION_TTL)
-    p.expire(key + "embeds", PAGINATION_TTL)
+    async with redis.pipeline() as pipe:
+        # update index and reset redis expiration
+        await pipe.setex(key + "index", PAGINATION_TTL, idx)
+        await pipe.expire(key + "len", PAGINATION_TTL)
+        await pipe.expire(key + "embeds", PAGINATION_TTL)
 
-    # update embed
-    embed = Embed.from_dict(json.loads(embed_json[0]))
-    await gather(p.execute(), message.edit(embed=embed))
+        # update embed
+        embed = Embed.from_dict(json.loads(embed_json[0]))
+        await gather(pipe.execute(), message.edit(embed=embed))
