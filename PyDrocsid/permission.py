@@ -1,12 +1,22 @@
+from __future__ import annotations
+
+import sys
+from collections import namedtuple
+from contextvars import ContextVar
 from enum import Enum
-from typing import Union, Type
+from typing import Union
 
 from discord import Member, User
 from discord.ext.commands import check, Context, CheckFailure
 from sqlalchemy import Column, String, Integer
 
-from PyDrocsid.database import db, db_thread
-from PyDrocsid.translations import translations
+from PyDrocsid.database import db
+from PyDrocsid.environment import CACHE_TTL
+from PyDrocsid.redis import redis
+from PyDrocsid.translations import t
+
+# context variable for overriding the permission level of the user who invoked the current command
+permission_override: ContextVar[BasePermissionLevel] = ContextVar("permission_override")
 
 
 class PermissionModel(db.Base):
@@ -16,22 +26,33 @@ class PermissionModel(db.Base):
     level: Union[Column, int] = Column(Integer)
 
     @staticmethod
-    def create(permission: str, level: int) -> "PermissionModel":
+    async def create(permission: str, level: int) -> PermissionModel:
         row = PermissionModel(permission=permission, level=level)
-        db.add(row)
+        await db.add(row)
         return row
 
     @staticmethod
-    def get(permission: str, default: int) -> int:
-        if (row := db.get(PermissionModel, permission)) is None:
-            row = PermissionModel.create(permission, default)
+    async def get(permission: str, default: int) -> int:
+        """Get the configured level of a given permission."""
+
+        if await redis.exists(rkey := f"permissions:{permission}"):
+            return int(await redis.get(rkey))
+
+        if (row := await db.get(PermissionModel, permission=permission)) is None:
+            row = await PermissionModel.create(permission, default)
+
+        await redis.setex(rkey, CACHE_TTL, row.level)
 
         return row.level
 
     @staticmethod
-    def set(permission: str, level: int) -> "PermissionModel":
-        if (row := db.get(PermissionModel, permission)) is None:
-            return PermissionModel.create(permission, level)
+    async def set(permission: str, level: int) -> PermissionModel:
+        """Configure the level of a given permission."""
+
+        await redis.setex(f"permissions:{permission}", CACHE_TTL, level)
+
+        if (row := await db.get(PermissionModel, permission=permission)) is None:
+            return await PermissionModel.create(permission, level)
 
         row.level = level
         return row
@@ -40,54 +61,121 @@ class PermissionModel(db.Base):
 class BasePermission(Enum):
     @property
     def description(self) -> str:
-        return translations.permissions[self.name]
-
-    async def resolve(self) -> "BasePermissionLevel":
-        value: int = await db_thread(PermissionModel.get, self.name, self.default_permission_level.value)
-        return self.pl_cls.__call__(value)
-
-    async def set(self, level: "BasePermissionLevel"):
-        await db_thread(PermissionModel.set, self.name, level.value)
-
-    @property
-    def default_permission_level(self) -> "BasePermissionLevel":
         raise NotImplementedError
 
     @property
-    def pl_cls(self) -> Type["BasePermissionLevel"]:
-        return type(self.default_permission_level)
+    def cog(self) -> str:
+        return sys.modules[self.__class__.__module__].__package__.split(".")[-1]
+
+    @property
+    def fullname(self) -> str:
+        return self.cog + "." + self.name
+
+    @property
+    def _default_level(self) -> BasePermissionLevel:
+        from PyDrocsid.config import Config
+
+        # get default level from overrides or use the global default
+        return Config.DEFAULT_PERMISSION_OVERRIDES.get(self.cog, {}).get(self.name, Config.DEFAULT_PERMISSION_LEVEL)
+
+    async def resolve(self) -> BasePermissionLevel:
+        """Get the configured permission level of this permission."""
+
+        from PyDrocsid.config import Config
+
+        value: int = await PermissionModel.get(self.fullname, self._default_level.level)
+        for level in Config.PERMISSION_LEVELS:  # type: BasePermissionLevel
+            if level.level == value:
+                return level
+        raise ValueError(f"permission level not found: {value}")
+
+    async def set(self, level: BasePermissionLevel):
+        """Configure the permission level of this permission."""
+
+        await PermissionModel.set(self.fullname, level.level)
 
     async def check_permissions(self, member: Union[Member, User]) -> bool:
+        """Return whether this permission is granted to a given member."""
+
         return await (await self.resolve()).check_permissions(member)
 
     @property
     def check(self):
+        """Decorator for bot commands to require this permission when invoking this command."""
+
         return check_permission_level(self)
+
+
+PermissionLevel = namedtuple("PermissionLevel", ["level", "aliases", "description", "guild_permissions", "roles"])
 
 
 class BasePermissionLevel(Enum):
+    @property
+    def level(self) -> int:
+        return self.value.level
+
+    @property
+    def aliases(self) -> list[str]:
+        return self.value.aliases
+
+    @property
+    def description(self) -> str:
+        return self.value.description
+
+    @property
+    def guild_permissions(self) -> list[str]:
+        return self.value.guild_permissions
+
+    @property
+    def roles(self) -> list[str]:
+        return self.value.roles
+
     @classmethod
-    async def get_permission_level(cls, member: Union[Member, User]) -> "BasePermissionLevel":
+    async def get_permission_level(cls, member: Union[Member, User]) -> BasePermissionLevel:
+        """Get the permission level of a given member without (takes permission_override into account)."""
+
+        if override := permission_override.get(None):
+            return override
+
+        return await cls._get_permission_level(member)
+
+    @classmethod
+    async def _get_permission_level(cls, member: Union[Member, User]) -> BasePermissionLevel:
+        """Get the permission level of a given member."""
+
         raise NotImplementedError
 
     async def check_permissions(self, member: Union[Member, User]) -> bool:
+        """Return whether this permission level is granted to a given member."""
+
         level: BasePermissionLevel = await self.get_permission_level(member)
-        return level.value >= self.value  # skipcq: PYL-W0143
+        return level.level >= self.level  # skipcq: PYL-W0143
 
     @property
     def check(self):
+        """Decorator for bot commands to require this permission level when invoking this command."""
+
         return check_permission_level(self)
+
+    @classmethod
+    def max(cls) -> BasePermissionLevel:
+        """Returns the highest permission level available."""
+
+        return max(cls, key=lambda x: x.level)
 
 
 def check_permission_level(level: Union[BasePermission, BasePermissionLevel]):
-    @check
+    """Discord commmand check to require a given level when invoking the command."""
+
     async def inner(ctx: Context):
         member: Union[Member, User] = ctx.author
         if not isinstance(member, Member):
             member = ctx.bot.guilds[0].get_member(ctx.author.id) or member
         if not await level.check_permissions(member):
-            raise CheckFailure(translations.not_allowed)
+            raise CheckFailure(t.g.not_allowed)
 
         return True
 
-    return inner
+    inner.level = level
+
+    return check(inner)

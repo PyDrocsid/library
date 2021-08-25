@@ -1,0 +1,46 @@
+name: Emoji map update
+
+on:
+  schedule:
+    - cron: '0 0 * * *'
+  workflow_dispatch:
+
+env:
+  PYTHON_VERSION: 3.9
+
+jobs:
+  update-emojis:
+    runs-on: ubuntu-latest
+    environment: update-emojis
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2.3.4
+        with:
+          submodules: false
+
+      - name: Set up Python ${{ env.PYTHON_VERSION }}
+        uses: actions/setup-python@v2.2.2
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Run emoji map update script
+        id: run_update_script
+        run: |
+          python emoji_update.py
+          if git diff -s --exit-code PyDrocsid/emoji_map.json; then
+              echo "::set-output name=map_changed::false"
+              echo "Emoji map did not change."
+          else
+              echo "::set-output name=map_changed::true"
+          fi
+
+      - name: Create a pull request with the changed map
+        uses: peter-evans/create-pull-request@v3
+        if: ${{ steps.run_update_script.outputs.map_changed == 'true' }}
+        with:
+          token: ${{ secrets.TOKEN }}
+          commit-message: Updated the emoji map
+          branch: update-emojis
+          title: Updated the emoji map
+          body: ''
+          author: 'GitHub <noreply@github.com>'

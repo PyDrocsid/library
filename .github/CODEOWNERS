@@ -1,0 +1,4 @@
+* @Defelo
+/PyDrocsid/ @PyDrocsid/code-reviewer
+*.md @PyDrocsid/text-reviewer
+translations/ @PyDrocsid/code-reviewer @PyDrocsid/text-reviewer
