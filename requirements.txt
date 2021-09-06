@@ -1,4 +1,4 @@
-setuptools~=57.4
+setuptools~=58.0
 SQLAlchemy~=1.4
 PyYAML~=5.4
 discord.py~=1.7
