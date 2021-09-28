@@ -1,6 +1,6 @@
 from distutils.core import setup
 from os import environ
-from subprocess import getoutput
+from subprocess import getoutput  # noqa: S404
 
 from setuptools import find_packages
 
