@@ -4,9 +4,11 @@ from subprocess import getoutput  # noqa: S404
 
 from setuptools import find_packages
 
+version = environ["VERSION"] if "VERSION" in environ else getoutput("git describe --tags --always").replace("-", "+", 1)
+
 setup(
     name="PyDrocsid",
-    version=environ["VERSION"] if "VERSION" in environ else getoutput("git describe --tags --always"),
+    version=version,
     url="https://github.com/Defelo/PyDrocsid",
     author="Defelo",
     author_email="elodef42@gmail.com",
