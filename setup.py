@@ -1,11 +1,12 @@
 from distutils.core import setup
 from os import environ
+from subprocess import getoutput
 
 from setuptools import find_packages
 
 setup(
     name="PyDrocsid",
-    version=environ["VERSION"],
+    version=environ["VERSION"] if "VERSION" in environ else getoutput("git describe --tags --always"),
     url="https://github.com/Defelo/PyDrocsid",
     author="Defelo",
     author_email="elodef42@gmail.com",
