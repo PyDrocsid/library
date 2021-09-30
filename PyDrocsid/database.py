@@ -82,7 +82,10 @@ class UTCDateTime(TypeDecorator):
     def process_bind_param(self, value, dialect):
         return value
 
-    def process_result_value(self, value: datetime, dialect):
+    def process_result_value(self, value: Optional[datetime], dialect) -> Optional[datetime]:
+        if value is None:
+            return None
+
         return value.replace(tzinfo=timezone.utc)
 
 
