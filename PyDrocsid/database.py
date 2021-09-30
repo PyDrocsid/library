@@ -1,10 +1,12 @@
-from contextlib import asynccontextmanager
 from asyncio import Event
+from contextlib import asynccontextmanager
 from contextvars import ContextVar
+from datetime import datetime, timezone
 from functools import wraps, partial
 from typing import TypeVar, Optional, Type
 
 # noinspection PyProtectedMember
+from sqlalchemy import TypeDecorator, DateTime
 from sqlalchemy.engine import URL
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, AsyncEngine
 from sqlalchemy.ext.declarative import declarative_base
@@ -70,6 +72,18 @@ def delete(table) -> Delete:
     """Shortcut for :meth:`sqlalchemy.sql.expression.delete`"""
 
     return sa_delete(table)
+
+
+class UTCDateTime(TypeDecorator):
+    impl = DateTime
+
+    cache_ok = True
+
+    def process_bind_param(self, value, dialect):
+        return value
+
+    def process_result_value(self, value: datetime, dialect):
+        return value.replace(tzinfo=timezone.utc)
 
 
 class DB:
