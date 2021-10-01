@@ -148,6 +148,7 @@ green:
   a200: 0x69F0AE
   a400: 0x00E676
   a700: 0x00C853
+  a800: 0x339204
 lightgreen:
   50: 0xF1F8E9
   100: 0xDCEDC8
