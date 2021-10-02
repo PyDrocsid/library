@@ -77,7 +77,7 @@ def make_error(message: str, user: Union[Member, User, None] = None) -> Embed:
     embed = Embed(title=t.error, colour=MaterialColors.error, description=str(message))
 
     if user:
-        embed.set_author(name=str(user), icon_url=user.avatar_url)
+        embed.set_author(name=str(user), icon_url=user.display_avatar.url)
 
     return embed
 
