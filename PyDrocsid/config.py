@@ -41,6 +41,10 @@ class Config:
     REPO_LINK: str
     REPO_ICON: str
 
+    # pydrocsid information
+    DOCUMENTATION_URL: str
+    DISCORD_INVITE: str
+
     # developers
     AUTHOR: Contributor
     CONTRIBUTORS: Counter[Contributor] = Counter(
@@ -86,6 +90,13 @@ def load_repo(config):
     Config.REPO_NAME = config["repo"]["name"]
     Config.REPO_LINK = f"https://github.com/{Config.REPO_OWNER}/{Config.REPO_NAME}"
     Config.REPO_ICON = config["repo"]["icon"]
+
+
+def load_pydrocsid_info(config):
+    """Load pydrocsid information."""
+
+    Config.DOCUMENTATION_URL = config["pydrocsid"]["documentation_url"]
+    Config.DISCORD_INVITE = config["pydrocsid"]["discord_invite"]
 
 
 def load_language(config):
@@ -180,5 +191,6 @@ def load_config_file(path: Path):
     Config.ROLES = {k: (v["name"], v["check_assignable"]) for k, v in config["roles"].items()}
 
     load_repo(config)
+    load_pydrocsid_info(config)
     load_language(config)
     load_permission_levels(config)

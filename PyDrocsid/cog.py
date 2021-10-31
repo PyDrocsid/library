@@ -4,6 +4,7 @@ import re
 import sys
 from datetime import datetime
 from typing import Union, Type, Optional, Callable, Awaitable
+from urllib.parse import urljoin
 
 from discord import (
     Member,
@@ -262,6 +263,6 @@ def get_documentation(cog: Union[Cog, Type[Cog]]) -> Optional[str]:
             r"^cogs\.[a-zA-Z\d\-_]+\.([a-zA-Z\d\-_]+)\.([a-zA-Z\d\-_]+)\.cog$",
             cls.__module__,
         ):
-            return f"https://docs.pydrocsid.ml/cogs/{match.group(1)}/{match.group(2)}/"
+            return urljoin(Config.DOCUMENTATION_URL, f"cogs/{match.group(1)}/{match.group(2)}/")
 
     return None
