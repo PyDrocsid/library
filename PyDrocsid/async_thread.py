@@ -95,7 +95,7 @@ def run_as_task(func):
     return inner
 
 
-class GatherAnyException(Exception):
+class GatherAnyError(Exception):
     def __init__(self, idx: int, exception: Exception):
         self.idx: int = idx
         self.exception: Exception = exception
@@ -129,6 +129,6 @@ async def gather_any(*coroutines: Awaitable[T]) -> tuple[int, T]:
 
     idx, ok, value = result[0]
     if not ok:
-        raise GatherAnyException(idx, value)
+        raise GatherAnyError(idx, value)
 
     return idx, value

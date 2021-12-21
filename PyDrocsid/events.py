@@ -28,7 +28,7 @@ from PyDrocsid.database import db_wrapper
 from PyDrocsid.multilock import MultiLock
 
 
-class StopEventHandling(Exception):
+class StopEventHandling(Exception):  # noqa: N818
     """Raise this exception to prevent remaining event handlers from handling the current event."""
 
     pass
