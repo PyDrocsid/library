@@ -1,7 +1,19 @@
 from contextlib import asynccontextmanager
 from typing import Union
 
-from discord import User, Member, Embed, Message, Forbidden, TextChannel, ButtonStyle, ui, NotFound, InteractionResponse
+from discord import (
+    User,
+    Member,
+    Embed,
+    Message,
+    Forbidden,
+    TextChannel,
+    ButtonStyle,
+    ui,
+    NotFound,
+    InteractionResponse,
+    Interaction,
+)
 from discord.abc import Messageable
 from discord.ext.commands import Command, Context, CommandError
 from discord.ui import View, Button
@@ -149,14 +161,22 @@ async def add_reactions(ctx: Union[Context, Message], *emojis: str):
 
 
 class Confirm(View):
-    def __init__(self, danger: bool, timeout: float):
+    def __init__(self, user: Member | User, danger: bool, timeout: float):
         super().__init__(timeout=timeout)
 
+        self.user = user
         self.result = None
         if danger:
             self.children: list[Button]
             self.children[0].style = ButtonStyle.danger
             self.children[1].style = ButtonStyle.secondary
+
+    async def interaction_check(self, interaction: Interaction) -> bool:
+        if interaction.user == self.user:
+            return True
+
+        await interaction.response.send_message("Please do not press this button again!", ephemeral=True)
+        return False
 
     @ui.button(label=t.confirm, style=ButtonStyle.success)
     async def confirm(self, button: Button, _):
@@ -180,7 +200,7 @@ async def confirm(ctx: Context, embed: Embed, danger: bool = False, timeout: int
     """
 
     # send embed and add reactions
-    view = Confirm(danger, timeout)
+    view = Confirm(ctx.author, danger, timeout)
     message: Message = await reply(ctx, embed=embed, view=view)
 
     await view.wait()
