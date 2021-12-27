@@ -1,13 +1,11 @@
-import asyncio
 from contextlib import asynccontextmanager
-from copy import deepcopy
 from typing import Union
 
-from discord import User, Member, Embed, Message, Forbidden, TextChannel
+from discord import User, Member, Embed, Message, Forbidden, TextChannel, ButtonStyle, ui, NotFound, InteractionResponse
 from discord.abc import Messageable
 from discord.ext.commands import Command, Context, CommandError
+from discord.ui import View, Button
 
-from PyDrocsid.async_thread import gather_any
 from PyDrocsid.command_edit import link_response
 from PyDrocsid.emojis import name_to_emoji
 from PyDrocsid.environment import REPLY, MENTION_AUTHOR
@@ -91,7 +89,12 @@ async def can_run_command(command: Command, ctx: Context) -> bool:
         return False
 
 
-async def reply(ctx: Union[Context, Message, Messageable], *args, no_reply: bool = False, **kwargs) -> Message:
+async def reply(
+    ctx: Context | Message | Messageable | InteractionResponse,
+    *args,
+    no_reply: bool = False,
+    **kwargs,
+) -> Message | None:
     """
     Reply to a message and link response to this message.
 
@@ -101,6 +104,10 @@ async def reply(ctx: Union[Context, Message, Messageable], *args, no_reply: bool
     :param kwargs: keyword arguments to pass to ctx.send/ctx.reply
     :return: the message that was sent
     """
+
+    if isinstance(ctx, InteractionResponse):
+        await ctx.send_message(*args, **kwargs, ephemeral=True)
+        return None
 
     if isinstance(channel := ctx.channel if isinstance(ctx, (Message, Context)) else ctx, TextChannel):
         try:
@@ -141,48 +148,52 @@ async def add_reactions(ctx: Union[Context, Message], *emojis: str):
             break
 
 
+class Confirm(View):
+    def __init__(self, danger: bool, timeout: float):
+        super().__init__(timeout=timeout)
+
+        self.result = None
+        if danger:
+            self.children: list[Button]
+            self.children[0].style = ButtonStyle.danger
+            self.children[1].style = ButtonStyle.secondary
+
+    @ui.button(label=t.confirm, style=ButtonStyle.success)
+    async def confirm(self, button: Button, _):
+        self.result = True
+        self.stop()
+        button.label = t.confirmed
+
+    @ui.button(label=t.cancel, style=ButtonStyle.danger)
+    async def cancel(self, button: Button, _):
+        self.result = False
+        self.stop()
+        button.label = t.canceled
+
+
 @asynccontextmanager
-async def confirm(ctx: Context, embed: Embed, timeout: int = 300):
+async def confirm(ctx: Context, embed: Embed, danger: bool = False, timeout: int = 300):
     """
     Send an embed, add confirmation reactions (:white_check_mark: and :x:) and wait for a reaction of the author.
     Yield True or False, depending on whether the author reacted with :white_check_mark: or :x:.
     Update the message if the embed has been modified and remove all reactions.
     """
 
-    # create a copy of the embed so that we can check later if it has been edited
-    _embed: dict = deepcopy(embed.to_dict())
-
     # send embed and add reactions
-    message: Message = await reply(ctx, embed=embed)
-    await message.add_reaction(yes := name_to_emoji["white_check_mark"])
-    await message.add_reaction(no := name_to_emoji["x"])
+    view = Confirm(danger, timeout)
+    message: Message = await reply(ctx, embed=embed, view=view)
 
-    # wait for either a confirmation reaction, or the deletion of the message, or the expiration of the timeout
-    i, result = await gather_any(
-        ctx.bot.wait_for(
-            "reaction_add",
-            check=lambda r, u: r.message == message and u == ctx.author and str(r) in [yes, no],
-        ),
-        ctx.bot.wait_for("message_delete", check=lambda msg: msg == message),
-        asyncio.sleep(timeout),
-    )
+    await view.wait()
 
-    if i == 0:  # confirmation reaction
-        reaction, _ = result
-        yield str(reaction) == yes, message
-    else:  # message deleted or timeout expired
+    if view.result is None:
         yield False, None
+    else:
+        yield view.result, message
 
-    if i == 1:  # message deleted
-        return
+    for item in view.children:
+        item.disabled = True
 
-    # edit message if embed has been modified
-    if embed.to_dict() != _embed:
-        await message.edit(embed=embed)
-
-    # remove reactions
     try:
-        await message.clear_reactions()
-    except Forbidden:
-        await message.remove_reaction(yes, ctx.bot.user)
-        await message.remove_reaction(no, ctx.bot.user)
+        await message.edit(embed=embed, view=view)
+    except NotFound:
+        pass
