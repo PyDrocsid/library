@@ -1,5 +1,5 @@
 from copy import deepcopy
-from typing import List, Optional, Union
+from typing import List, Optional
 
 from discord import Embed, Message, User, InteractionResponse
 from discord.abc import Messageable
@@ -255,4 +255,6 @@ async def send_long_embed(
         ]
 
     # create pagination
+    if not pagination_user and hasattr(channel, "author"):
+        pagination_user = channel.author
     return [await create_pagination(channel, pagination_user, embeds, **kwargs)]
