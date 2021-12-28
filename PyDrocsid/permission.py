@@ -10,7 +10,7 @@ from discord import Member, User
 from discord.ext.commands import check, Context, CheckFailure
 from sqlalchemy import Column, String, Integer
 
-from PyDrocsid.database import db
+from PyDrocsid.database import db, Base
 from PyDrocsid.environment import CACHE_TTL
 from PyDrocsid.redis import redis
 from PyDrocsid.translations import t
@@ -19,7 +19,7 @@ from PyDrocsid.translations import t
 permission_override: ContextVar[BasePermissionLevel] = ContextVar("permission_override")
 
 
-class PermissionModel(db.Base):
+class PermissionModel(Base):
     __tablename__ = "permissions"
 
     permission: Union[Column, str] = Column(String(64), primary_key=True, unique=True)
