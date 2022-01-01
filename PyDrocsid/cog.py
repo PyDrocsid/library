@@ -15,6 +15,7 @@ from discord import (
     Invite,
     PartialEmoji,
     Role,
+    Thread,
 )
 from discord.abc import Messageable, User
 from discord.ext.commands import Cog as DiscordCog, Bot, Context, CommandError
@@ -134,6 +135,9 @@ class Cog(DiscordCog):
         pass
 
     async def on_command_error(self, ctx: Context, error: CommandError):
+        pass
+
+    async def on_thread_join(self, thread: Thread):
         pass
 
 
