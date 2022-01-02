@@ -43,3 +43,9 @@ REPLY: bool = get_bool("REPLY", True)
 MENTION_AUTHOR: bool = get_bool("MENTION_AUTHOR", True)
 
 DISABLE_PAGINATION: bool = get_bool("DISABLE_PAGINATION", False)
+
+ENABLE_API: bool = get_bool("ENABLE_API", True)
+HOST = getenv("HOST", "0.0.0.0")  # noqa: S104
+PORT = int(getenv("PORT", "8000"))
+ROOT_PATH: str = getenv("ROOT_PATH", "")
+DEBUG: bool = get_bool("DEBUG", False)

@@ -19,6 +19,7 @@ from discord import (
 )
 from discord.abc import Messageable, User
 from discord.ext.commands import Cog as DiscordCog, Bot, Context, CommandError
+from fastapi import FastAPI
 
 from PyDrocsid.config import Config, Contributor
 from PyDrocsid.environment import DISABLED_COGS
@@ -59,6 +60,9 @@ class Cog(DiscordCog):
         """
 
         return True
+
+    def include_router(self, fastapi: FastAPI):
+        pass
 
     # Event Handlers
 
@@ -195,7 +199,7 @@ def check_dependencies(cogs: list[Cog]) -> set[Type[Cog]]:
     return disabled
 
 
-def register_cogs(bot: Bot, *cogs: Cog):
+def register_cogs(bot: Bot, fastapi: Optional[FastAPI], *cogs: Cog):
     """Add cogs to the bot."""
 
     register_events(bot)
@@ -213,6 +217,8 @@ def register_cogs(bot: Bot, *cogs: Cog):
                 event_handlers.setdefault(e[3:], []).append(func)
 
         bot.add_cog(cog)
+        if fastapi:
+            cog.include_router(fastapi)
 
         # load metadata from cog and its base classes
         cls: Type[Cog]
@@ -224,7 +230,7 @@ def register_cogs(bot: Bot, *cogs: Cog):
             Config.ENABLED_COG_PACKAGES.add(sys.modules[cls.__module__].__package__)
 
 
-def load_cogs(bot: Bot, *cogs: Cog):
+def load_cogs(bot: Bot, fastapi: Optional[FastAPI], *cogs: Cog):
     """Load and prepare cogs, resolve dependencies and add cogs to the bot."""
 
     disabled_cogs: list[Cog] = []
@@ -244,7 +250,7 @@ def load_cogs(bot: Bot, *cogs: Cog):
     enabled_cogs = [cog for cog in enabled_cogs if type(cog) not in disabled]
 
     # register remaining cogs
-    register_cogs(bot, *enabled_cogs)
+    register_cogs(bot, fastapi, *enabled_cogs)
 
     if bot.cogs:
         logger.info("\033[1m\033[32m%s Cog%s enabled:\033[0m", len(bot.cogs), "s" * (len(bot.cogs) > 1))
