@@ -17,6 +17,11 @@ x_days:
   one: "{cnt} day"
   many: "{cnt} days"
 
+confirm: Confirm
+cancel: Cancel
+confirmed: Confirmed
+canceled: Canceled
+
 role_assignment_error:
   no_permissions: I cannot manage this role because I don't have `manage_roles` permission on this server.
   higher: I cannot manage this role because `@{}` is higher than `@{}`.

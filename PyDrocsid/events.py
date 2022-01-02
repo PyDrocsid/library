@@ -19,6 +19,7 @@ from discord import (
     VoiceState,
     Guild,
     Invite,
+    Thread,
 )
 from discord.abc import Messageable
 from discord.ext.commands import Bot, Context, CommandError
@@ -28,7 +29,7 @@ from PyDrocsid.database import db_wrapper
 from PyDrocsid.multilock import MultiLock
 
 
-class StopEventHandling(Exception):
+class StopEventHandling(Exception):  # noqa: N818
     """Raise this exception to prevent remaining event handlers from handling the current event."""
 
     pass
@@ -260,6 +261,10 @@ class Events:
     @staticmethod
     async def on_command_error(_, ctx: Context, error: CommandError):
         await call_event_handlers("command_error", ctx, error, identifier=ctx.message.id)
+
+    @staticmethod
+    async def on_thread_join(_, thread: Thread):
+        await call_event_handlers("thread_join", thread, identifier=thread.id)
 
 
 event_handlers: dict[str, list[Callable[..., Awaitable]]] = {}

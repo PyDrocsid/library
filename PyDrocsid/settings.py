@@ -8,14 +8,14 @@ from typing import Union, Optional, Type, TypeVar
 from sqlalchemy import Column, String
 
 from PyDrocsid.async_thread import LockDeco
-from PyDrocsid.database import db
+from PyDrocsid.database import db, Base
 from PyDrocsid.environment import CACHE_TTL
 from PyDrocsid.redis import redis
 
 T = TypeVar("T")
 
 
-class SettingsModel(db.Base):
+class SettingsModel(Base):
     __tablename__ = "settings"
 
     key: Union[Column, str] = Column(String(64), primary_key=True, unique=True)

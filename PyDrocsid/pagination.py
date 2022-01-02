@@ -1,97 +1,56 @@
-import json
-from asyncio import create_task, gather
-from typing import Union, Optional
+from typing import Optional
 
-from discord import Message, Embed, PartialEmoji, User, Member
+import discord
+from discord import Embed, User, Message
+from discord.abc import Messageable
+from discord.ext.pages import Paginator, PaginatorButton
 
-from PyDrocsid.emojis import name_to_emoji
-from PyDrocsid.environment import PAGINATION_TTL
-from PyDrocsid.events import listener
-from PyDrocsid.redis import redis
+from PyDrocsid.command import reply
 
 
-async def create_pagination(message: Message, pagination_user: Optional[User], embeds: list[Embed]):
+class CustomPaginator(Paginator):
+    async def interaction_check(self, interaction: discord.Interaction) -> bool:
+        if await super().interaction_check(interaction):
+            return True
+
+        paginator = CustomPaginator(self.pages, author_check=False)
+        paginator.current_page = self.current_page
+        for button in self.children:
+            if not isinstance(button, PaginatorButton) or button.custom_id != interaction.data["custom_id"]:
+                continue
+
+            if button.button_type == "first":
+                paginator.current_page = 0
+            elif button.button_type == "prev":
+                paginator.current_page -= 1
+            elif button.button_type == "next":
+                paginator.current_page += 1
+            elif button.button_type == "last":
+                paginator.current_page = paginator.page_count
+            break
+
+        paginator.update_buttons()
+        paginator.message = await interaction.response.send_message(
+            embed=paginator.pages[paginator.current_page],
+            view=paginator,
+            ephemeral=True,
+        )
+        return False
+
+
+async def create_pagination(channel: Messageable, user: Optional[User], embeds: list[Embed], **kwargs) -> Message:
     """
     Create embed pagination on a message.
 
-    :param message: the message which should be paginated
-    :param pagination_user: the user who should be able to control the pagination
+    :param channel: the channel to send the message to
+    :param user: the user who should be able to control the pagination
     :param embeds: a list of embeds
     """
 
-    key = f"pagination:channel={message.channel.id},msg={message.id}:"
+    paginator = CustomPaginator(embeds)
+    paginator.user = user
 
-    # save index, length and embeds in redis
-    async with redis.pipeline() as pipe:
-        await pipe.setex(key + "index", PAGINATION_TTL, 0)
-        await pipe.setex(key + "len", PAGINATION_TTL, len(embeds))
-        for embed in embeds:
-            await pipe.rpush(key + "embeds", json.dumps(embed.to_dict()))
-        await pipe.expire(key + "embeds", PAGINATION_TTL)
-        await pipe.setex(key + "user", PAGINATION_TTL, pagination_user.id if pagination_user else -1)
-        await pipe.execute()
+    msg = await reply(channel, embed=(paginator.pages[0]), view=paginator, **kwargs)
+    paginator.message = msg
 
-    # add navigation reactions
-    if len(embeds) > 2:
-        await message.add_reaction(name_to_emoji["previous_track"])
-    await message.add_reaction(name_to_emoji["arrow_backward"])
-    await message.add_reaction(name_to_emoji["arrow_forward"])
-    if len(embeds) > 2:
-        await message.add_reaction(name_to_emoji["next_track"])
-
-
-@listener
-async def on_raw_reaction_add(message: Message, emoji: PartialEmoji, user: Union[User, Member]):
-    """Event handler for pagination"""
-
-    if user.bot:
-        return
-
-    key = f"pagination:channel={message.channel.id},msg={message.id}:"
-
-    # return if cooldown is active
-    if await redis.exists(key + "cooldown"):
-        create_task(message.remove_reaction(emoji, user))
-        return
-
-    # return if this is no pagination message
-    if not (idx := await redis.get(key + "index")) or not (length := await redis.get(key + "len")):
-        return
-
-    if (pagination_user := await redis.get(key + "user")) != "-1" and pagination_user != str(user.id):
-        create_task(message.remove_reaction(emoji, user))
-        return
-
-    # enable 1 second cooldown
-    await redis.setex(key + "cooldown", 1, 1)
-
-    idx, length = int(idx), int(length)
-
-    # determine new index
-    if str(emoji) == name_to_emoji["previous_track"]:
-        idx = None if idx <= 0 else 0
-    elif str(emoji) == name_to_emoji["arrow_backward"]:
-        idx = None if idx <= 0 else idx - 1
-    elif str(emoji) == name_to_emoji["arrow_forward"]:
-        idx = None if idx >= length - 1 else idx + 1
-    elif str(emoji) == name_to_emoji["next_track"]:
-        idx = None if idx >= length - 1 else length - 1
-    else:
-        return
-
-    create_task(message.remove_reaction(emoji, user))
-    if idx is None:  # click on reaction has no effect as the requested page is already visible
-        return
-
-    if not (embed_json := await redis.lrange(key + "embeds", idx, idx)):
-        return
-
-    async with redis.pipeline() as pipe:
-        # update index and reset redis expiration
-        await pipe.setex(key + "index", PAGINATION_TTL, idx)
-        await pipe.expire(key + "len", PAGINATION_TTL)
-        await pipe.expire(key + "embeds", PAGINATION_TTL)
-
-        # update embed
-        embed = Embed.from_dict(json.loads(embed_json[0]))
-        await gather(pipe.execute(), message.edit(embed=embed))
+    return msg
