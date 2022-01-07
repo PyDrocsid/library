@@ -1,15 +1,17 @@
-from contextlib import asynccontextmanager
 from asyncio import Event
+from contextlib import asynccontextmanager
 from contextvars import ContextVar
+from datetime import datetime, timezone
 from functools import wraps, partial
-from typing import TypeVar, Optional, Type
+from typing import TypeVar, Optional, Type, Any
 
 # noinspection PyProtectedMember
+from sqlalchemy import TypeDecorator, DateTime
 from sqlalchemy.engine import URL
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, AsyncEngine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.future import select as sa_select, Select
-from sqlalchemy.orm import selectinload
+from sqlalchemy.orm import selectinload, DeclarativeMeta, registry
 from sqlalchemy.sql import Executable
 from sqlalchemy.sql.expression import exists as sa_exists, delete as sa_delete, Delete
 from sqlalchemy.sql.functions import count
@@ -72,6 +74,32 @@ def delete(table) -> Delete:
     return sa_delete(table)
 
 
+class UTCDateTime(TypeDecorator):
+    impl = DateTime
+
+    cache_ok = True
+
+    def process_bind_param(self, value, dialect):
+        return value
+
+    def process_result_value(self, value: Optional[datetime], dialect) -> Optional[datetime]:
+        if value is None:
+            return None
+
+        return value.replace(tzinfo=timezone.utc)
+
+
+class Base(metaclass=DeclarativeMeta):
+    __abstract__ = True
+    registry = registry()
+    metadata = registry.metadata
+
+    __table_args__ = {"mysql_collate": "utf8mb4_bin"}
+
+    def __init__(self, **kwargs: Any) -> None:
+        self.registry.constructor(self, **kwargs)
+
+
 class DB:
     """
     Database connection
@@ -79,7 +107,6 @@ class DB:
     Attributes
     ----------
     engine: :class:`sqlalchemy.engine.Engine`
-    Base: :class:`sqlalchemy.ext.declarative.DeclarativeMeta`
     """
 
     def __init__(
@@ -121,8 +148,6 @@ class DB:
             echo=echo,
         )
 
-        self.Base = declarative_base()
-
         self._session: ContextVar[Optional[AsyncSession]] = ContextVar("session", default=None)
         self._close_event: ContextVar[Optional[Event]] = ContextVar("close_event", default=None)
 
@@ -132,9 +157,9 @@ class DB:
         from PyDrocsid.config import get_subclasses_in_enabled_packages
 
         logger.debug("creating tables")
-        tables = [cls.__table__ for cls in get_subclasses_in_enabled_packages(self.Base)]
+        tables = [cls.__table__ for cls in get_subclasses_in_enabled_packages(Base)]
         async with self.engine.begin() as conn:
-            await conn.run_sync(partial(self.Base.metadata.create_all, tables=tables))
+            await conn.run_sync(partial(Base.metadata.create_all, tables=tables))
 
     async def add(self, obj: T) -> T:
         """
