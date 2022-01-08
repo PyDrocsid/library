@@ -4,6 +4,7 @@ import discord
 from discord import Embed, User, Message
 from discord.abc import Messageable
 from discord.ext.pages import Paginator, PaginatorButton
+from discord.ui import Button
 
 from PyDrocsid.command import reply
 
@@ -36,6 +37,14 @@ class CustomPaginator(Paginator):
             ephemeral=True,
         )
         return False
+
+    def update_buttons(self) -> dict:
+        out = super().update_buttons()
+
+        self.children[0].disabled = self.children[1].disabled
+        self.children[4].disabled = self.children[3].disabled
+
+        return out
 
 
 async def create_pagination(channel: Messageable, user: Optional[User], embeds: list[Embed], **kwargs) -> Message:
