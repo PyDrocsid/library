@@ -4,9 +4,9 @@ import discord
 from discord import Embed, User, Message
 from discord.abc import Messageable
 from discord.ext.pages import Paginator, PaginatorButton
-from discord.ui import Button
 
 from PyDrocsid.command import reply
+from PyDrocsid.environment import PAGINATION_TTL
 
 
 class CustomPaginator(Paginator):
@@ -56,7 +56,7 @@ async def create_pagination(channel: Messageable, user: Optional[User], embeds: 
     :param embeds: a list of embeds
     """
 
-    paginator = CustomPaginator(embeds)
+    paginator = CustomPaginator(embeds, timeout=PAGINATION_TTL)
     paginator.user = user
 
     msg = await reply(channel, embed=(paginator.pages[0]), view=paginator, **kwargs)
