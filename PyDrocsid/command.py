@@ -1,6 +1,9 @@
+import asyncio
+import time
 from contextlib import asynccontextmanager
-from typing import Union
+from typing import Union, cast
 
+from PyDrocsid.async_thread import gather_any
 from discord import (
     User,
     Member,
@@ -161,15 +164,56 @@ async def add_reactions(ctx: Union[Context, Message], *emojis: str):
 
 
 class Confirm(View):
-    def __init__(self, user: Member | User, danger: bool, timeout: float):
+    def __init__(self, user: Member | User, danger: bool, timeout: int, countdown: bool = True):
         super().__init__(timeout=timeout)
 
         self.user = user
         self.result = None
+        self.countdown = countdown
+        if countdown:
+            self.set_countdown(timeout)
+
         if danger:
             self.children: list[Button]
             self.children[0].style = ButtonStyle.danger
             self.children[1].style = ButtonStyle.secondary
+
+    def set_countdown(self, value: int):
+        button = cast(Button, self.children[1])
+        button.label = t.cancel + f" ({value})"
+
+    async def run(self, message: Message) -> bool | None:
+        async def countdown():
+            timeout = cast(int, self.timeout)
+            ts = time.time() + timeout
+            while (delta := ts - time.time()) > 0:
+                await asyncio.sleep(delta % 1)
+                if delta < 1:
+                    break
+                self.set_countdown(int(delta))
+                await gather_any(asyncio.sleep(1), message.edit(view=self))
+
+            self.stop()
+
+        if self.countdown:
+            task = asyncio.create_task(countdown())
+            await self.wait()
+            task.cancel()
+        else:
+            await self.wait()
+
+        if not self.result:
+            cast(Button, self.children[1]).label = t.canceled
+
+        for item in self.children:
+            item.disabled = True
+
+        try:
+            await message.edit(view=self)
+        except NotFound:
+            return None
+
+        return self.result
 
     async def interaction_check(self, interaction: Interaction) -> bool:
         if interaction.user == self.user:
@@ -183,6 +227,7 @@ class Confirm(View):
         self.result = True
         self.stop()
         button.label = t.confirmed
+        cast(Button, self.children[1]).label = t.cancel
 
     @ui.button(label=t.cancel, style=ButtonStyle.danger)
     async def cancel(self, button: Button, _):
@@ -192,7 +237,7 @@ class Confirm(View):
 
 
 @asynccontextmanager
-async def confirm(ctx: Context, embed: Embed, danger: bool = False, timeout: int = 300):
+async def confirm(ctx: Context, embed: Embed, danger: bool = False, timeout: int = 20):
     """
     Send an embed, add confirmation reactions (:white_check_mark: and :x:) and wait for a reaction of the author.
     Yield True or False, depending on whether the author reacted with :white_check_mark: or :x:.
@@ -203,17 +248,9 @@ async def confirm(ctx: Context, embed: Embed, danger: bool = False, timeout: int
     view = Confirm(ctx.author, danger, timeout)
     message: Message = await reply(ctx, embed=embed, view=view)
 
-    await view.wait()
+    result = await view.run(message)
 
-    if view.result is None:
+    if result is None:
         yield False, None
     else:
-        yield view.result, message
-
-    for item in view.children:
-        item.disabled = True
-
-    try:
-        await message.edit(embed=embed, view=view)
-    except NotFound:
-        pass
+        yield result, message
