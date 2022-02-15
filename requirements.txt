@@ -1,7 +1,7 @@
 setuptools~=60.2
 SQLAlchemy~=1.4
 PyYAML~=6.0
-py-cord @ git+https://github.com/Pycord-Development/pycord.git@master
+py-cord==2.0.0b4
 aiohttp~=3.8
 sentry-sdk~=1.5
 aenum~=3.1
