@@ -9,10 +9,10 @@ version = environ["VERSION"] if "VERSION" in environ else getoutput("git describ
 setup(
     name="PyDrocsid",
     version=version,
-    url="https://github.com/Defelo/PyDrocsid",
+    url="https://github.com/PyDrocsid/library",
     author="Defelo",
     author_email="elodef42@gmail.com",
-    description="Python Discord Bot Framework based on Discord.py",
+    description="Python Discord Bot Framework based on pycord",
     long_description=open("README.md").read(),
     long_description_content_type="text/markdown",
     packages=find_packages(),
