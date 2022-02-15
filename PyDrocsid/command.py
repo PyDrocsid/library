@@ -164,7 +164,7 @@ async def add_reactions(ctx: Union[Context, Message], *emojis: str):
 
 
 class Confirm(View):
-    def __init__(self, user: Member | User, danger: bool, timeout: int, countdown: bool = True):
+    def __init__(self, user: Member | User, danger: bool, timeout: int, countdown: bool):
         super().__init__(timeout=timeout)
 
         self.user = user
@@ -237,7 +237,7 @@ class Confirm(View):
 
 
 @asynccontextmanager
-async def confirm(ctx: Context, embed: Embed, danger: bool = False, timeout: int = 20):
+async def confirm(ctx: Context, embed: Embed, danger: bool = False, timeout: int = 20, countdown: bool = False):
     """
     Send an embed, add confirmation reactions (:white_check_mark: and :x:) and wait for a reaction of the author.
     Yield True or False, depending on whether the author reacted with :white_check_mark: or :x:.
@@ -245,7 +245,7 @@ async def confirm(ctx: Context, embed: Embed, danger: bool = False, timeout: int
     """
 
     # send embed and add reactions
-    view = Confirm(ctx.author, danger, timeout)
+    view = Confirm(ctx.author, danger, timeout, countdown)
     message: Message = await reply(ctx, embed=embed, view=view)
 
     result = await view.run(message)
