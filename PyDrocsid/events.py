@@ -36,8 +36,7 @@ class StopEventHandling(Exception):  # noqa: N818
 
 
 async def extract_from_raw_reaction_event(
-    bot: Bot,
-    event: RawReactionActionEvent,
+    bot: Bot, event: RawReactionActionEvent
 ) -> Optional[Tuple[Message, PartialEmoji, Union[User, Member]]]:
     """
     Extract message, emoji and user from any RawReactionActionEvent.

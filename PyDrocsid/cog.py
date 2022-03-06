@@ -6,17 +6,7 @@ from datetime import datetime
 from typing import Union, Type, Optional, Callable, Awaitable
 from urllib.parse import urljoin
 
-from discord import (
-    Member,
-    Message,
-    RawMessageDeleteEvent,
-    VoiceState,
-    Guild,
-    Invite,
-    PartialEmoji,
-    Role,
-    Thread,
-)
+from discord import Member, Message, RawMessageDeleteEvent, VoiceState, Guild, Invite, PartialEmoji, Role, Thread
 from discord.abc import Messageable, User
 from discord.ext.commands import Cog as DiscordCog, Bot, Context, CommandError
 
@@ -263,10 +253,7 @@ def get_documentation(cog: Union[Cog, Type[Cog]]) -> Optional[str]:
         cog = type(cog)
 
     for cls in cog.mro():
-        if match := re.match(
-            r"^cogs\.[a-zA-Z\d\-_]+\.([a-zA-Z\d\-_]+)\.([a-zA-Z\d\-_]+)\.cog$",
-            cls.__module__,
-        ):
+        if match := re.match(r"^cogs\.[a-zA-Z\d\-_]+\.([a-zA-Z\d\-_]+)\.([a-zA-Z\d\-_]+)\.cog$", cls.__module__):
             return urljoin(Config.DOCUMENTATION_URL, f"cogs/{match.group(1)}/{match.group(2)}/")
 
     return None

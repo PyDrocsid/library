@@ -105,10 +105,7 @@ async def can_run_command(command: Command, ctx: Context) -> bool:
 
 
 async def reply(
-    ctx: Context | Message | Messageable | InteractionResponse,
-    *args,
-    no_reply: bool = False,
-    **kwargs,
+    ctx: Context | Message | Messageable | InteractionResponse, *args, no_reply: bool = False, **kwargs
 ) -> Message | None:
     """
     Reply to a message and link response to this message.
@@ -127,9 +124,7 @@ async def reply(
     if isinstance(channel := ctx.channel if isinstance(ctx, (Message, Context)) else ctx, TextChannel):
         try:
             check_message_send_permissions(
-                channel,
-                check_file=bool(kwargs.get("file")),
-                check_embed=bool(kwargs.get("embed")),
+                channel, check_file=bool(kwargs.get("file")), check_embed=bool(kwargs.get("embed"))
             )
         except CommandError as e:
             raise PermissionError(channel.guild, e.args[0])

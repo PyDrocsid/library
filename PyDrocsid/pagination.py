@@ -179,9 +179,7 @@ class Paginator(discord.ui.View):
         return self.buttons
 
     async def send(
-        self,
-        ctx: Union[ApplicationContext, Context],
-        ephemeral: bool = False,
+        self, ctx: Union[ApplicationContext, Context], ephemeral: bool = False
     ) -> Union[discord.Message, discord.WebhookMessage]:
         page = self.pages[0]
 
@@ -280,9 +278,7 @@ class CustomPaginator(Paginator):
 
         paginator.update_buttons()
         paginator.message = await interaction.response.send_message(
-            embed=paginator.pages[paginator.current_page],
-            view=paginator,
-            ephemeral=True,
+            embed=paginator.pages[paginator.current_page], view=paginator, ephemeral=True
         )
         return False
 

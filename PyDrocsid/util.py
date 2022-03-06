@@ -35,11 +35,7 @@ async def is_teamler(member: Member) -> bool:
 
 
 async def check_wastebasket(
-    message: Message,
-    member: Member,
-    emoji: PartialEmoji,
-    footer: str,
-    permission: BasePermission,
+    message: Message, member: Member, emoji: PartialEmoji, footer: str, permission: BasePermission
 ) -> Optional[int]:
     """
     Check if a user has reacted with :wastebasket: on an embed originally sent by the bot and if the user
@@ -218,10 +214,7 @@ def check_role_assignable(role: Role):
 
 
 def check_message_send_permissions(
-    channel: TextChannel,
-    check_send: bool = True,
-    check_file: bool = False,
-    check_embed: bool = False,
+    channel: TextChannel, check_send: bool = True, check_file: bool = False, check_embed: bool = False
 ):
     permissions: Permissions = channel.permissions_for(channel.guild.me)
     if not permissions.view_channel:

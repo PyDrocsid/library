@@ -19,10 +19,7 @@ def setup_sentry(dsn: str, name: str, version: str):
         integrations=[
             AioHttpIntegration(),
             SqlalchemyIntegration(),
-            LoggingIntegration(
-                level=logging.DEBUG,
-                event_level=logging.WARNING,
-            ),
+            LoggingIntegration(level=logging.DEBUG, event_level=logging.WARNING),
         ],
         release=f"{name}@{version}",
     )

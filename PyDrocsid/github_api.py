@@ -36,9 +36,7 @@ async def get_repo_description(owner: str, name: str) -> Optional[str]:
     """Get the description of a github repository."""
 
     result: Optional[dict] = await graphql(
-        "query($owner:String!,$name:String!){repository(owner:$owner,name:$name){description}}",
-        owner=owner,
-        name=name,
+        "query($owner:String!,$name:String!){repository(owner:$owner,name:$name){description}}", owner=owner, name=name
     )
     if not result:
         return None

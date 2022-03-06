@@ -55,7 +55,7 @@ class Config:
             Contributor.MaxiHuHe04: 10,
             Contributor.ce_phox: 10,
             Contributor.DELTA: 10,
-        },
+        }
     )
 
     ROLES: dict[str, tuple[str, bool]]
@@ -108,9 +108,7 @@ def load_language(config):
 
 
 async def _get_permission_level(
-    permission_levels: dict[str, PermissionLevel],
-    cls,
-    member: Union[Member, User],
+    permission_levels: dict[str, PermissionLevel], cls, member: Union[Member, User]
 ) -> BasePermissionLevel:
     """Get the permission level of a given member."""
 
@@ -146,11 +144,7 @@ def load_permission_levels(config):
             raise ValueError(f"Invalid permission level: {v['level']} ({k})")
 
         permission_levels[k] = PermissionLevel(
-            v["level"],
-            v["aliases"],
-            v["name"],
-            v["if"].get("permissions", []),
-            v["if"].get("roles", []),
+            v["level"], v["aliases"], v["name"], v["if"].get("permissions", []), v["if"].get("roles", [])
         )
 
     # add owner permission level
@@ -164,9 +158,7 @@ def load_permission_levels(config):
 
     # generate PermissionLevel enum
     Config.PERMISSION_LEVELS = BasePermissionLevel("PermissionLevel", permission_levels)
-    Config.PERMISSION_LEVELS._get_permission_level = classmethod(
-        partial(_get_permission_level, permission_levels),
-    )
+    Config.PERMISSION_LEVELS._get_permission_level = classmethod(partial(_get_permission_level, permission_levels))
 
     Config.DEFAULT_PERMISSION_LEVEL = getattr(Config.PERMISSION_LEVELS, config["default_permission_level"].upper())
     Config.TEAMLER_LEVEL = getattr(Config.PERMISSION_LEVELS, config["teamler_level"].upper())
@@ -175,8 +167,7 @@ def load_permission_levels(config):
     for cog, overrides in config.get("default_permission_overrides", {}).items():
         for permission, level in overrides.items():
             Config.DEFAULT_PERMISSION_OVERRIDES.setdefault(cog.lower(), {}).setdefault(
-                permission.lower(),
-                getattr(Config.PERMISSION_LEVELS, level.upper()),
+                permission.lower(), getattr(Config.PERMISSION_LEVELS, level.upper())
             )
 
 

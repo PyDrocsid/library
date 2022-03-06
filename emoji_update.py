@@ -64,7 +64,7 @@ if __name__ == "__main__":
             except JSONDecodeError as e:
                 print(
                     f"Error while decoding emoji JSON from {script_url} "
-                    f"(position {json_match.start(0)}-{json_match.end(0)}): {e}",
+                    f"(position {json_match.start(0)}-{json_match.end(0)}): {e}"
                 )
 
     if not emoji_json:
