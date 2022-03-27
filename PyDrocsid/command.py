@@ -3,7 +3,6 @@ import time
 from contextlib import asynccontextmanager
 from typing import Union, cast
 
-from PyDrocsid.async_thread import gather_any
 from discord import (
     User,
     Member,
@@ -21,6 +20,7 @@ from discord.abc import Messageable
 from discord.ext.commands import Command, Context, CommandError
 from discord.ui import View, Button
 
+from PyDrocsid.async_thread import gather_any
 from PyDrocsid.command_edit import link_response
 from PyDrocsid.emojis import name_to_emoji
 from PyDrocsid.environment import REPLY, MENTION_AUTHOR
@@ -105,7 +105,7 @@ async def can_run_command(command: Command, ctx: Context) -> bool:
 
 
 async def reply(
-    ctx: Context | Message | Messageable | InteractionResponse, *args, no_reply: bool = False, **kwargs
+    ctx: Message | Messageable | InteractionResponse, *args, no_reply: bool = False, **kwargs
 ) -> Message | None:
     """
     Reply to a message and link response to this message.

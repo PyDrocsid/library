@@ -1,7 +1,5 @@
-from typing import Optional, Union, List, Dict
-
 import discord
-from discord import Embed, User, Message, ApplicationContext
+from discord import Embed, User, Message, ApplicationContext, Member, InteractionResponse
 from discord.abc import Messageable
 from discord.ext.commands import Context
 
@@ -34,13 +32,13 @@ class PaginatorButton(discord.ui.Button):
 class Paginator(discord.ui.View):
     def __init__(
         self,
-        pages: Union[List[str], List[discord.Embed]],
+        pages: list[str] | list[discord.Embed],
         show_disabled=True,
         show_indicator=True,
         author_check=True,
         disable_on_timeout=True,
-        custom_view: Optional[discord.ui.View] = None,
-        timeout: Optional[float] = 180.0,
+        custom_view: discord.ui.View | None = None,
+        timeout: float | None = 180.0,
     ) -> None:
         super().__init__(timeout=timeout)
         self.timeout = timeout
@@ -51,7 +49,7 @@ class Paginator(discord.ui.View):
         self.show_indicator = show_indicator
         self.disable_on_timeout = disable_on_timeout
         self.custom_view = custom_view
-        self.message: Union[discord.Message, discord.WebhookMessage, None] = None
+        self.message: discord.Message | discord.WebhookMessage | None = None
         self.buttons = {
             "first": {
                 "object": PaginatorButton(
@@ -147,7 +145,7 @@ class Paginator(discord.ui.View):
         button.style = button_style
         return button
 
-    def update_buttons(self) -> Dict:
+    def update_buttons(self) -> dict:
         for key, button in self.buttons.items():
             if key == "first":
                 button["hidden"] = self.current_page <= 0
@@ -179,8 +177,8 @@ class Paginator(discord.ui.View):
         return self.buttons
 
     async def send(
-        self, ctx: Union[ApplicationContext, Context], ephemeral: bool = False
-    ) -> Union[discord.Message, discord.WebhookMessage]:
+        self, ctx: ApplicationContext | Context, ephemeral: bool = False
+    ) -> discord.Message | discord.WebhookMessage:
         page = self.pages[0]
 
         self.user = ctx.author
@@ -234,13 +232,13 @@ class Paginator(discord.ui.View):
     async def update(
         self,
         interaction: discord.Interaction,
-        pages: List[Union[str, discord.Embed]],
-        show_disabled: Optional[bool] = None,
-        show_indicator: Optional[bool] = None,
-        author_check: Optional[bool] = None,
-        disable_on_timeout: Optional[bool] = None,
-        custom_view: Optional[discord.ui.View] = None,
-        timeout: Optional[float] = None,
+        pages: list[str | discord.Embed],
+        show_disabled: bool | None = None,
+        show_indicator: bool | None = None,
+        author_check: bool | None = None,
+        disable_on_timeout: bool | None = None,
+        custom_view: discord.ui.View | None = None,
+        timeout: float | None = None,
     ):
         self.pages = pages
         self.page_count = len(self.pages) - 1
@@ -283,7 +281,9 @@ class CustomPaginator(Paginator):
         return False
 
 
-async def create_pagination(channel: Messageable, user: Optional[User], embeds: list[Embed], **kwargs) -> Message:
+async def create_pagination(
+    channel: Message | Messageable | InteractionResponse, user: User | Member | None, embeds: list[Embed], **kwargs
+) -> Message:
     """
     Create embed pagination on a message.
 

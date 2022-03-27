@@ -1,9 +1,10 @@
 from copy import deepcopy
-from typing import List, Optional
+from typing import Any, cast
 
-from discord import Embed, Message, User, InteractionResponse
+from discord import Embed, Message, User, InteractionResponse, Member
 from discord.abc import Messageable
 from discord.embeds import EmptyEmbed
+from discord.ext.commands.context import Context
 
 from PyDrocsid.command import reply
 from PyDrocsid.environment import DISABLE_PAGINATION
@@ -13,7 +14,7 @@ from PyDrocsid.pagination import create_pagination
 EMPTY_MARKDOWN = "_ _"
 
 
-def split_lines(text: str, max_size: int, *, first_max_size: Optional[int] = None) -> List[str]:
+def split_lines(text: str, max_size: int, *, first_max_size: int | None = None) -> list[str]:
     """
     Split a string into a list of substrings such that each substring contains no more than max_size characters.
     To achieve this, this function first tries to split the string at line breaks. Substrings which are still too
@@ -26,7 +27,7 @@ def split_lines(text: str, max_size: int, *, first_max_size: Optional[int] = Non
     """
 
     # strip any leading or trailing spaces and newlines
-    text: str = text.strip(" \n")
+    text = text.strip(" \n")
 
     # max size of current substring
     ms: int = first_max_size or max_size
@@ -81,17 +82,17 @@ async def send_long_embed(
     channel: Messageable | Message | InteractionResponse,
     embed: Embed,
     *,
-    content: Optional[str] = None,
+    content: str | None = None,
     repeat_title: bool = False,
     repeat_thumbnail: bool = False,
     repeat_name: bool = False,
     repeat_image: bool = False,
     repeat_footer: bool = False,
     paginate: bool = False,
-    pagination_user: Optional[User] = None,
+    pagination_user: User | Member | None = None,
     max_fields: int = 25,
-    **kwargs,
-) -> List[Message]:
+    **kwargs: Any,
+) -> list[Message]:
     """
     Split and send a long embed in multiple messages.
 
@@ -152,12 +153,12 @@ async def send_long_embed(
 
     embeds: list[Embed] = []
 
-    def add_embed(e: Embed):
+    def add_embed(e: Embed) -> None:
         """Copy and add an embed to the list of embeds."""
 
         embeds.append(Embed.from_dict(deepcopy(e.to_dict())))
 
-    def clear_embed(*, clear_completely: bool = False):
+    def clear_embed(*, clear_completely: bool = False) -> None:
         if not repeat_title:
             cur.title = ""
             cur.remove_author()
@@ -179,7 +180,7 @@ async def send_long_embed(
     if not repeat_image:
         cur.set_image(url=EmptyEmbed)
 
-    *parts, last = split_lines(embed.description or "", EmbedLimits.DESCRIPTION) or [""]
+    *parts, last = split_lines(cast(str, embed.description or ""), EmbedLimits.DESCRIPTION) or [""]
     for part in parts:
         cur.description = part
         add_embed(cur)
@@ -189,7 +190,7 @@ async def send_long_embed(
 
     # add embed fields
     for field in fields:
-        parts = split_lines(field.value, EmbedLimits.FIELD_VALUE)
+        parts = split_lines(cast(str, field.value), EmbedLimits.FIELD_VALUE)
         inline = bool(field.inline) and len(parts) == 1
 
         if not field.name:
@@ -221,7 +222,7 @@ async def send_long_embed(
 
             # add field parts individually
             for i, part in enumerate(parts):
-                name: str = [field.name, EMPTY_MARKDOWN][i > 0]
+                name: str = [cast(str, field.name), EMPTY_MARKDOWN][i > 0]
 
                 # check whether embed is full
                 if len(cur.fields) >= max_fields or len(cur) + len(name) + len(part) > max_total:
@@ -229,7 +230,7 @@ async def send_long_embed(
                     add_embed(cur)
                     clear_embed(clear_completely=True)
                     if repeat_name:
-                        name = field.name
+                        name = cast(str, field.name)
 
                 # add field part
                 cur.add_field(name=name, value=part, inline=inline)
@@ -250,11 +251,14 @@ async def send_long_embed(
 
     # don't use pagination if there is only one embed
     if not paginate or len(embeds) <= 1:
-        return [
+        messages = [
             await reply(channel, embed=e, content=content if not i else None, **kwargs) for i, e in enumerate(embeds)
         ]
+    else:
+        # create pagination
+        if not pagination_user and isinstance(channel, (Message, Context)):
+            pagination_user = channel.author
 
-    # create pagination
-    if not pagination_user and hasattr(channel, "author"):
-        pagination_user = channel.author
-    return [await create_pagination(channel, pagination_user, embeds, **kwargs)]
+        messages = [await create_pagination(channel, pagination_user, embeds, **kwargs)]
+
+    return [msg for msg in messages if msg]
