@@ -1,6 +1,12 @@
 #!/bin/bash
 
-# install via ln -s ../../pre-commit.sh .git/hooks/pre-commit
+# install via ./pre-commit.sh install
+
+if [[ "$1" = "install" ]]; then
+    hooks=$(git rev-parse --git-path hooks)
+    ln -s $(realpath --relative-to $hooks pre-commit.sh) $hooks/pre-commit
+    exit 0
+fi
 
 tmp=$(mktemp)
 git diff > $tmp
