@@ -17,6 +17,7 @@ x_days:
   one: "{cnt} day"
   many: "{cnt} days"
 
+confirmation: Confirmation
 confirm: Confirm
 cancel: Cancel
 confirmed: Confirmed
