@@ -1,3 +1,0 @@
-include PyDrocsid/emoji_map.json
-include PyDrocsid/material_colors.yml
-include PyDrocsid/translations/*
