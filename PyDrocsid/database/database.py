@@ -1,22 +1,20 @@
 from asyncio import Event
-from contextlib import asynccontextmanager
 from contextvars import ContextVar
 from datetime import datetime, timezone
-from functools import wraps, partial
-from typing import TypeVar, Optional, Type, Any, Callable, Awaitable
+from functools import partial
+from typing import TypeVar, Type, Any, cast, AsyncIterator
 
-# noinspection PyProtectedMember
-from sqlalchemy import TypeDecorator, DateTime
+from sqlalchemy import Column, DateTime, TypeDecorator, Table
 from sqlalchemy.engine import URL
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, AsyncEngine
-from sqlalchemy.future import select as sa_select, Select
+from sqlalchemy.future import select as sa_select
 from sqlalchemy.orm import selectinload, DeclarativeMeta, registry
 from sqlalchemy.sql import Executable
 from sqlalchemy.sql.expression import exists as sa_exists, delete as sa_delete, Delete
 from sqlalchemy.sql.functions import count
-from sqlalchemy.sql.selectable import Exists
+from sqlalchemy.sql.selectable import Exists, Select
 
-from PyDrocsid.environment import (
+from ..environment import (
     DB_DRIVER,
     DB_HOST,
     DB_PORT,
@@ -28,14 +26,14 @@ from PyDrocsid.environment import (
     POOL_SIZE,
     MAX_OVERFLOW,
 )
-from PyDrocsid.logger import get_logger
+from ..logger import get_logger
 
 T = TypeVar("T")
 
 logger = get_logger(__name__)
 
 
-def select(entity, *args) -> Select:
+def select(entity: Any, *args: Column[Any]) -> Select:
     """Shortcut for :meth:`sqlalchemy.future.select`"""
 
     if not args:
@@ -55,33 +53,33 @@ def select(entity, *args) -> Select:
     return sa_select(entity).options(*options)
 
 
-def filter_by(cls, *args, **kwargs) -> Select:
+def filter_by(cls: Any, *args: Column[Any], **kwargs: Any) -> Select:
     """Shortcut for :meth:`sqlalchemy.future.Select.filter_by`"""
 
     return select(cls, *args).filter_by(**kwargs)
 
 
-def exists(*entities, **kwargs) -> Exists:
+def exists(statement: Executable, *entities: Column[Any], **kwargs: Any) -> Exists:
     """Shortcut for :meth:`sqlalchemy.future.select`"""
 
-    return sa_exists(*entities, **kwargs)
+    return sa_exists(statement, *entities, **kwargs)
 
 
-def delete(table) -> Delete:
+def delete(table: Any) -> Delete:
     """Shortcut for :meth:`sqlalchemy.sql.expression.delete`"""
 
     return sa_delete(table)
 
 
-class UTCDateTime(TypeDecorator):
+class UTCDateTime(TypeDecorator[Any]):  # noqa
     impl = DateTime
 
     cache_ok = True
 
-    def process_bind_param(self, value, dialect):
+    def process_bind_param(self, value: Any, _: Any) -> Any:
         return value
 
-    def process_result_value(self, value: Optional[datetime], dialect) -> Optional[datetime]:
+    def process_result_value(self, value: datetime | None, _: Any) -> datetime | None:
         if value is None:
             return None
 
@@ -89,6 +87,8 @@ class UTCDateTime(TypeDecorator):
 
 
 class Base(metaclass=DeclarativeMeta):
+    __table__: Table
+
     __abstract__ = True
     registry = registry()
     metadata = registry.metadata
@@ -100,14 +100,6 @@ class Base(metaclass=DeclarativeMeta):
 
 
 class DB:
-    """
-    Database connection
-
-    Attributes
-    ----------
-    engine: :class:`sqlalchemy.engine.Engine`
-    """
-
     def __init__(
         self,
         driver: str,
@@ -142,10 +134,10 @@ class DB:
             echo=echo,
         )
 
-        self._session: ContextVar[Optional[AsyncSession]] = ContextVar("session", default=None)
-        self._close_event: ContextVar[Optional[Event]] = ContextVar("close_event", default=None)
+        self._session: ContextVar[AsyncSession | None] = ContextVar("session", default=None)
+        self._close_event: ContextVar[Event | None] = ContextVar("close_event", default=None)
 
-    async def create_tables(self):
+    async def create_tables(self) -> None:
         """Create all tables defined in enabled cog packages."""
 
         from PyDrocsid.config import get_subclasses_in_enabled_packages
@@ -177,58 +169,59 @@ class DB:
         await self.session.delete(obj)
         return obj
 
-    async def exec(self, statement: Executable, *args, **kwargs):
+    async def exec(self, statement: Executable) -> Any:
         """Execute an sql statement and return the result."""
 
-        return await self.session.execute(statement, *args, **kwargs)
+        return await self.session.execute(statement)
 
-    async def stream(self, statement: Executable, *args, **kwargs):
+    async def stream(self, statement: Executable) -> AsyncIterator[Any]:
         """Execute an sql statement and stream the result."""
 
-        return (await self.session.stream(statement, *args, **kwargs)).scalars()
+        return cast(AsyncIterator[Any], (await self.session.stream(statement)).scalars())
 
-    async def all(self, statement: Executable, *args, **kwargs) -> list[T]:
+    async def all(self, statement: Executable) -> list[Any]:
         """Execute an sql statement and return all results as a list."""
 
-        return [x async for x in await self.stream(statement, *args, **kwargs)]
+        return [x async for x in await self.stream(statement)]
 
-    async def first(self, *args, **kwargs):
+    async def first(self, statement: Executable) -> Any | None:
         """Execute an sql statement and return the first result."""
 
-        return (await self.exec(*args, **kwargs)).scalar()
+        return (await self.exec(statement)).scalar()
 
-    async def exists(self, *args, **kwargs):
+    async def exists(self, statement: Executable, *args: Column[Any], **kwargs: Any) -> bool:
         """Execute an sql statement and return whether it returned at least one row."""
 
-        return await self.first(exists(*args, **kwargs).select())
+        return cast(bool, await self.first(exists(statement, *args, **kwargs).select()))
 
-    async def count(self, *args, **kwargs):
+    async def count(self, statement: Executable, *args: Column[Any]) -> int:
         """Execute an sql statement and return the number of returned rows."""
 
-        return await self.first(select(count()).select_from(*args, **kwargs))
+        return cast(int, await self.first(select(count()).select_from(statement, *args)))
 
-    async def get(self, cls: Type[T], *args, **kwargs) -> Optional[T]:
+    async def get(self, cls: Type[T], *args: Column[Any], **kwargs: Any) -> T | None:
         """Shortcut for first(filter_by(...))"""
 
         return await self.first(filter_by(cls, *args, **kwargs))
 
-    async def commit(self):
+    async def commit(self) -> None:
         """Shortcut for :meth:`sqlalchemy.ext.asyncio.AsyncSession.commit`"""
 
         if self._session.get():
             await self.session.commit()
 
-    async def close(self):
+    async def close(self) -> None:
         """Close the current session"""
 
         if self._session.get():
             await self.session.close()
-            self._close_event.get().set()
+            if close_event := self._close_event.get():
+                close_event.set()
 
     def create_session(self) -> AsyncSession:
         """Create a new async session and store it in the context variable."""
 
-        self._session.set(session := AsyncSession(self.engine, expire_on_commit=False))
+        self._session.set(session := AsyncSession(self.engine))
         self._close_event.set(Event())
         return session
 
@@ -236,36 +229,11 @@ class DB:
     def session(self) -> AsyncSession:
         """Get the session object for the current task"""
 
-        return self._session.get()
+        return cast(AsyncSession, self._session.get())
 
-    async def wait_for_close_event(self):
-        await self._close_event.get().wait()
-
-
-@asynccontextmanager
-async def db_context():
-    """Async context manager for database sessions."""
-
-    db.create_session()
-    try:
-        yield
-    finally:
-        await db.commit()
-        await db.close()
-
-
-AsyncFunc = TypeVar("AsyncFunc", bound=Callable[..., Awaitable[Any]])
-
-
-def db_wrapper(f: AsyncFunc) -> AsyncFunc:
-    """Decorator which wraps an async function in a database context."""
-
-    @wraps(f)
-    async def inner(*args: Any, **kwargs: Any) -> Any:
-        async with db_context():
-            return await f(*args, **kwargs)
-
-    return inner
+    async def wait_for_close_event(self) -> None:
+        if close_event := self._close_event.get():
+            await close_event.wait()
 
 
 def get_database() -> DB:
@@ -287,7 +255,3 @@ def get_database() -> DB:
         max_overflow=MAX_OVERFLOW,
         echo=SQL_SHOW_STATEMENTS,
     )
-
-
-# global database connection object
-db: DB = get_database()
