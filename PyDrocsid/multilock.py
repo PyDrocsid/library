@@ -7,7 +7,7 @@ T = TypeVar("T")
 class MultiLock:
     """Container for multiple async locks which automatically deletes unused locks"""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.locks: dict[T, Lock] = {}
         self.requests: dict[T, int] = {}
 

@@ -3,13 +3,12 @@ from contextlib import asynccontextmanager
 from contextvars import ContextVar
 from datetime import datetime, timezone
 from functools import wraps, partial
-from typing import TypeVar, Optional, Type, Any
+from typing import TypeVar, Optional, Type, Any, Callable, Awaitable
 
 # noinspection PyProtectedMember
 from sqlalchemy import TypeDecorator, DateTime
 from sqlalchemy.engine import URL
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, AsyncEngine
-from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.future import select as sa_select, Select
 from sqlalchemy.orm import selectinload, DeclarativeMeta, registry
 from sqlalchemy.sql import Executable
@@ -255,11 +254,14 @@ async def db_context():
         await db.close()
 
 
-def db_wrapper(f):
+AsyncFunc = TypeVar("AsyncFunc", bound=Callable[..., Awaitable[Any]])
+
+
+def db_wrapper(f: AsyncFunc) -> AsyncFunc:
     """Decorator which wraps an async function in a database context."""
 
     @wraps(f)
-    async def inner(*args, **kwargs):
+    async def inner(*args: Any, **kwargs: Any) -> Any:
         async with db_context():
             return await f(*args, **kwargs)
 
