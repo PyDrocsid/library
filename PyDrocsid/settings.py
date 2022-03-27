@@ -2,8 +2,7 @@ from __future__ import annotations
 
 import sys
 
-from aenum import NoAliasEnum
-from typing import Union, Optional, Type, TypeVar
+from typing import Union, Optional, Type, TypeVar, TYPE_CHECKING
 
 from sqlalchemy import Column, String
 
@@ -11,6 +10,11 @@ from PyDrocsid.async_thread import LockDeco
 from PyDrocsid.database import db, Base
 from PyDrocsid.environment import CACHE_TTL
 from PyDrocsid.redis import redis
+
+if not TYPE_CHECKING:
+    from aenum import NoAliasEnum as Enum
+else:
+    from enum import Enum
 
 T = TypeVar("T")
 
@@ -67,7 +71,7 @@ class SettingsModel(Base):
         return row
 
 
-class Settings(NoAliasEnum):
+class Settings(Enum):
     @property
     def cog(self) -> str:
         return sys.modules[self.__class__.__module__].__package__.split(".")[-1]

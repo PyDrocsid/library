@@ -11,7 +11,7 @@ async def get_prefix() -> str:
     return await PrefixSettings.prefix.get()
 
 
-async def set_prefix(new_prefix: str):
+async def set_prefix(new_prefix: str) -> None:
     """Set bot prefix."""
 
     await PrefixSettings.prefix.set(new_prefix)
