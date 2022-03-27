@@ -22,7 +22,7 @@ logger = get_logger(__name__)
 
 
 class Cog(DiscordCog):  # type: ignore
-    CONTRIBUTORS: list[Contributor]
+    CONTRIBUTORS: list[tuple[int, str]]
     DEPENDENCIES: list[Type[Cog]] = []
 
     instance: Cog | None = None

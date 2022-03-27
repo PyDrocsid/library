@@ -4,7 +4,7 @@ from functools import partial
 from os import getenv
 from pathlib import Path
 from subprocess import getoutput  # noqa: S404
-from typing import Type, Union, TypeVar
+from typing import Type, Union, TypeVar, Any, cast
 
 import yaml
 from discord import Member, User
@@ -16,7 +16,6 @@ from PyDrocsid.translations import Translations
 T = TypeVar("T")
 
 
-# noinspection SpellCheckingInspection
 class Contributor:
     """Collection of all contributors. Each contributor is a (discord_id, github_id) tuple."""
 
@@ -46,8 +45,8 @@ class Config:
     DISCORD_INVITE: str
 
     # developers
-    AUTHOR: Contributor
-    CONTRIBUTORS: Counter[Contributor] = Counter(
+    AUTHOR: tuple[int, str]
+    CONTRIBUTORS: Counter[tuple[int, str]] = Counter(
         {
             Contributor.Defelo: 1000,
             Contributor.TNT2k: 100,
@@ -77,13 +76,13 @@ def get_subclasses_in_enabled_packages(base: Type[T]) -> list[Type[T]]:
     ]
 
 
-def load_version():
+def load_version() -> None:
     """Get bot version either from the VERSION file or from git describe and store it in the bot config."""
 
     Config.VERSION = getoutput("cat VERSION 2>/dev/null || git describe --tags --always").lstrip("v")
 
 
-def load_repo(config):
+def load_repo(config: dict[str, Any]) -> None:
     """Load repository configuration."""
 
     Config.REPO_OWNER = config["repo"]["owner"]
@@ -92,14 +91,14 @@ def load_repo(config):
     Config.REPO_ICON = config["repo"]["icon"]
 
 
-def load_pydrocsid_info(config):
+def load_pydrocsid_info(config: dict[str, Any]) -> None:
     """Load pydrocsid information."""
 
     Config.DOCUMENTATION_URL = config["pydrocsid"]["documentation_url"]
     Config.DISCORD_INVITE = config["pydrocsid"]["discord_invite"]
 
 
-def load_language(config):
+def load_language(config: dict[str, Any]) -> None:
     """Load language configuration."""
 
     if (lang := getenv("LANGUAGE", config["default_language"])) not in config["languages"]:
@@ -108,32 +107,32 @@ def load_language(config):
 
 
 async def _get_permission_level(
-    permission_levels: dict[str, PermissionLevel], cls, member: Union[Member, User]
+    permission_levels: dict[str, PermissionLevel], cls: Any, member: Union[Member, User]
 ) -> BasePermissionLevel:
     """Get the permission level of a given member."""
 
     if not isinstance(member, Member):
-        return cls.PUBLIC
+        return cast(BasePermissionLevel, cls.PUBLIC)
 
     roles = {role.id for role in member.roles}
 
-    async def has_role(role_name):
+    async def has_role(role_name: str) -> bool:
         return await RoleSettings.get(role_name) in roles
 
     for k, v in permission_levels.items():
         # check for required guild permissions
         if any(getattr(member.guild_permissions, p) for p in v.guild_permissions):
-            return getattr(cls, k.upper())
+            return cast(BasePermissionLevel, getattr(cls, k.upper()))
 
         # check for required roles
         for r in v.roles:
             if await has_role(r):
-                return getattr(cls, k.upper())
+                return cast(BasePermissionLevel, getattr(cls, k.upper()))
 
-    return cls.PUBLIC
+    return cast(BasePermissionLevel, cls.PUBLIC)
 
 
-def load_permission_levels(config):
+def load_permission_levels(config: dict[str, Any]) -> None:
     """Load permission level configuration."""
 
     permission_levels: dict[str, PermissionLevel] = {"public": PermissionLevel(0, ["public", "p"], "Public", [], [])}
@@ -153,12 +152,17 @@ def load_permission_levels(config):
 
     # sort permission levels in descending order
     permission_levels = {
-        k.upper(): v for k, v in sorted(permission_levels.items(), key=lambda pl: pl[1].level, reverse=True)
+        k.upper(): v
+        for k, v in sorted(permission_levels.items(), key=lambda pl: pl[1].level, reverse=True)  # type: ignore
     }
 
     # generate PermissionLevel enum
-    Config.PERMISSION_LEVELS = BasePermissionLevel("PermissionLevel", permission_levels)
-    Config.PERMISSION_LEVELS._get_permission_level = classmethod(partial(_get_permission_level, permission_levels))
+    Config.PERMISSION_LEVELS = cast(
+        Type[BasePermissionLevel], BasePermissionLevel("PermissionLevel", permission_levels)  # type: ignore
+    )
+    Config.PERMISSION_LEVELS._get_permission_level = classmethod(  # type: ignore
+        partial(_get_permission_level, permission_levels)
+    )
 
     Config.DEFAULT_PERMISSION_LEVEL = getattr(Config.PERMISSION_LEVELS, config["default_permission_level"].upper())
     Config.TEAMLER_LEVEL = getattr(Config.PERMISSION_LEVELS, config["teamler_level"].upper())
@@ -171,7 +175,7 @@ def load_permission_levels(config):
             )
 
 
-def load_config_file(path: Path):
+def load_config_file(path: Path) -> None:
     """Load bot configuration from a config file."""
 
     with path.open() as file:
