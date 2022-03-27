@@ -3,12 +3,15 @@ from __future__ import annotations
 import re
 import sys
 from datetime import datetime
-from typing import Union, Type, Optional, Callable, Awaitable
+from typing import Type, Callable, Awaitable, Any, cast
 from urllib.parse import urljoin
 
 from discord import Member, Message, RawMessageDeleteEvent, VoiceState, Guild, Invite, PartialEmoji, Role, Thread
 from discord.abc import Messageable, User
-from discord.ext.commands import Cog as DiscordCog, Bot, Context, CommandError
+from discord.ext.commands.bot import Bot
+from discord.ext.commands.cog import Cog as DiscordCog
+from discord.ext.commands.context import Context
+from discord.ext.commands.errors import CommandError
 
 from PyDrocsid.config import Config, Contributor
 from PyDrocsid.environment import DISABLED_COGS
@@ -18,14 +21,14 @@ from PyDrocsid.logger import get_logger
 logger = get_logger(__name__)
 
 
-class Cog(DiscordCog):
+class Cog(DiscordCog):  # type: ignore
     CONTRIBUTORS: list[Contributor]
     DEPENDENCIES: list[Type[Cog]] = []
 
-    instance: Optional[Cog] = None
+    instance: Cog | None = None
     bot: Bot
 
-    def __new__(cls, *args, **kwargs):
+    def __new__(cls, *args: Any, **kwargs: Any) -> Cog:
         """Make sure there exists only one instance of a cog."""
 
         if cls.instance is None:
@@ -52,82 +55,82 @@ class Cog(DiscordCog):
 
     # Event Handlers
 
-    async def on_ready(self):
+    async def on_ready(self) -> None:
         pass
 
-    async def on_typing(self, channel: Messageable, user: Union[User, Member], when: datetime):
+    async def on_typing(self, channel: Messageable, user: User | Member, when: datetime) -> None:
         pass
 
-    async def on_self_message(self, message: Message):
+    async def on_self_message(self, message: Message) -> None:
         pass
 
-    async def on_message(self, message: Message):
+    async def on_message(self, message: Message) -> None:
         pass
 
-    async def on_bot_ping(self, message: Message):
+    async def on_bot_ping(self, message: Message) -> None:
         pass
 
-    async def on_message_delete(self, message: Message):
+    async def on_message_delete(self, message: Message) -> None:
         pass
 
-    async def on_raw_message_delete(self, event: RawMessageDeleteEvent):
+    async def on_raw_message_delete(self, event: RawMessageDeleteEvent) -> None:
         pass
 
-    async def on_message_edit(self, before: Message, after: Message):
+    async def on_message_edit(self, before: Message, after: Message) -> None:
         pass
 
-    async def on_raw_message_edit(self, channel: Messageable, message: Message):
+    async def on_raw_message_edit(self, channel: Messageable, message: Message) -> None:
         pass
 
-    async def on_raw_reaction_add(self, message: Message, emoji: PartialEmoji, user: Union[Member, User]):
+    async def on_raw_reaction_add(self, message: Message, emoji: PartialEmoji, user: User | Member) -> None:
         pass
 
-    async def on_raw_reaction_remove(self, message: Message, emoji: PartialEmoji, user: Union[Member, User]):
+    async def on_raw_reaction_remove(self, message: Message, emoji: PartialEmoji, user: User | Member) -> None:
         pass
 
-    async def on_raw_reaction_clear(self, message: Message):
+    async def on_raw_reaction_clear(self, message: Message) -> None:
         pass
 
-    async def on_raw_reaction_clear_emoji(self, message: Message, emoji: PartialEmoji):
+    async def on_raw_reaction_clear_emoji(self, message: Message, emoji: PartialEmoji) -> None:
         pass
 
-    async def on_member_join(self, member: Member):
+    async def on_member_join(self, member: Member) -> None:
         pass
 
-    async def on_member_remove(self, member: Member):
+    async def on_member_remove(self, member: Member) -> None:
         pass
 
-    async def on_member_nick_update(self, before: str, after: str):
+    async def on_member_nick_update(self, before: str, after: str) -> None:
         pass
 
-    async def on_member_role_add(self, after, role: Role):
+    async def on_member_role_add(self, after: Member, role: Role) -> None:
         pass
 
-    async def on_member_role_remove(self, after, role: Role):
+    async def on_member_role_remove(self, after: Member, role: Role) -> None:
         pass
 
-    async def on_user_update(self, before: User, after: User):
+    async def on_user_update(self, before: User, after: User) -> None:
         pass
 
-    async def on_voice_state_update(self, member: Member, before: VoiceState, after: VoiceState):
+    async def on_voice_state_update(self, member: Member, before: VoiceState, after: VoiceState) -> None:
         pass
 
-    async def on_member_ban(self, guild: Guild, user: Union[User, Member]):
+    async def on_member_ban(self, guild: Guild, user: User | Member) -> None:
         pass
 
-    async def on_member_unban(self, guild: Guild, user: User):
+    async def on_member_unban(self, guild: Guild, user: User) -> None:
         pass
 
-    async def on_invite_create(self, invite: Invite):
+    async def on_invite_create(self, invite: Invite) -> None:
         pass
 
-    async def on_invite_delete(self, invite: Invite):
+    async def on_invite_delete(self, invite: Invite) -> None:
         pass
 
-    async def on_command_error(self, ctx: Context, error: CommandError):
+    async def on_command_error(self, ctx: Context, error: CommandError) -> None:
         pass
 
-    async def on_thread_join(self, thread: Thread):
+    async def on_thread_join(self, thread: Thread) -> None:
         pass
 
 
@@ -146,8 +149,8 @@ def check_dependencies(cogs: list[Cog]) -> set[Type[Cog]]:
     # required_by maps cog x to a list of cogs that depend on x
     required_by: dict[Type[Cog], list[Cog]] = {}
     for cog in cogs:
-        for dependency in cog.DEPENDENCIES:
-            required_by.setdefault(dependency, []).append(cog)
+        for dep in cog.DEPENDENCIES:
+            required_by.setdefault(dep, []).append(cog)
 
     # set of disabled cogs
     disabled: set[Type[Cog]] = set()
@@ -185,7 +188,7 @@ def check_dependencies(cogs: list[Cog]) -> set[Type[Cog]]:
     return disabled
 
 
-def register_cogs(bot: Bot, *cogs: Cog):
+def register_cogs(bot: Bot, *cogs: Cog) -> None:
     """Add cogs to the bot."""
 
     register_events(bot)
@@ -195,7 +198,7 @@ def register_cogs(bot: Bot, *cogs: Cog):
 
         # iterate over attributes of cog to find event handlers
         for e in dir(Cog):
-            func: Callable[..., Awaitable] = getattr(cog, e)
+            func: Callable[..., Awaitable[None]] = getattr(cog, e)
 
             # event handlers must differ from the default handler defined in Cog
             if e.startswith("on_") and callable(func) and getattr(type(cog), e) is not getattr(Cog, e):
@@ -211,10 +214,10 @@ def register_cogs(bot: Bot, *cogs: Cog):
                 break
 
             Config.CONTRIBUTORS.update(cls.CONTRIBUTORS)
-            Config.ENABLED_COG_PACKAGES.add(sys.modules[cls.__module__].__package__)
+            Config.ENABLED_COG_PACKAGES.add(cast(str, sys.modules[cls.__module__].__package__))
 
 
-def load_cogs(bot: Bot, *cogs: Cog):
+def load_cogs(bot: Bot, *cogs: Cog) -> None:
     """Load and prepare cogs, resolve dependencies and add cogs to the bot."""
 
     disabled_cogs: list[Cog] = []
@@ -248,7 +251,7 @@ def load_cogs(bot: Bot, *cogs: Cog):
             logger.info(" - %s", name.__class__.__name__)
 
 
-def get_documentation(cog: Union[Cog, Type[Cog]]) -> Optional[str]:
+def get_documentation(cog: Cog | Type[Cog]) -> str | None:
     if isinstance(cog, Cog):
         cog = type(cog)
 

@@ -266,7 +266,7 @@ class Events:
         await call_event_handlers("thread_join", thread, identifier=thread.id)
 
 
-event_handlers: dict[str, list[Callable[..., Awaitable]]] = {}
+event_handlers: dict[str, list[Callable[..., Awaitable[None]]]] = {}
 handler_lock = MultiLock()
 
 
