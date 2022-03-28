@@ -1,12 +1,12 @@
 from __future__ import annotations
 
 import sys
-
-from typing import Union, Optional, Type, TypeVar, TYPE_CHECKING
+from typing import Type, TypeVar, TYPE_CHECKING, cast
 
 from sqlalchemy import Column, String
+from sqlalchemy.orm import Mapped
 
-from PyDrocsid.async_thread import LockDeco
+from PyDrocsid.async_thread import lock_deco
 from PyDrocsid.database import db, Base
 from PyDrocsid.environment import CACHE_TTL
 from PyDrocsid.redis import redis
@@ -16,46 +16,39 @@ if not TYPE_CHECKING:
 else:
     from enum import Enum
 
-T = TypeVar("T")
+Value = TypeVar("Value", str, int, float, bool)
 
 
 class SettingsModel(Base):
     __tablename__ = "settings"
 
-    key: Union[Column, str] = Column(String(64), primary_key=True, unique=True)
-    value: Union[Column, str] = Column(String(256))
+    key: Mapped[str] = Column(String(64), primary_key=True, unique=True)
+    value: Mapped[str] = Column(String(256))
 
     @staticmethod
-    async def _create(key: str, value: Union[str, int, float, bool]) -> SettingsModel:
-        if isinstance(value, bool):
-            value = int(value)
-
-        row = SettingsModel(key=key, value=str(value))
+    async def _create(key: str, value: Value) -> SettingsModel:
+        row = SettingsModel(key=key, value=str(int(value) if isinstance(value, bool) else value))
         await db.add(row)
         return row
 
     @staticmethod
-    @LockDeco
-    async def get(dtype: Type[T], key: str, default: Optional[T] = None) -> Optional[T]:
+    @lock_deco
+    async def get(dtype: Type[Value], key: str, default: Value) -> Value:
         """Get the value of a given setting."""
 
         if await redis.exists(rkey := f"settings:{key}"):
-            out: str = await redis.get(rkey)
+            out = await redis.get(rkey)
         else:
             if (row := await db.get(SettingsModel, key=key)) is None:
-                if default is None:
-                    return None
                 row = await SettingsModel._create(key, default)
-            out: str = row.value
+            out = row.value
             await redis.setex(rkey, CACHE_TTL, out)
 
-        if dtype == bool:
-            out: int = int(out)
-        return dtype(out)
+        return dtype(int(out) if dtype is bool else out)
 
     @staticmethod
-    @LockDeco
-    async def set(dtype: Type[T], key: str, value: T) -> SettingsModel:
+    @lock_deco
+    async def set(dtype: Type[Value], key: str, value: Value) -> SettingsModel:
         """Set the value of a given setting."""
 
         rkey = f"settings:{key}"
@@ -64,9 +57,7 @@ class SettingsModel(Base):
             await redis.setex(rkey, CACHE_TTL, row.value)
             return row
 
-        if dtype == bool:
-            value = int(value)
-        row.value = str(value)
+        row.value = str(int(value) if dtype is bool else value)
         await redis.setex(rkey, CACHE_TTL, row.value)
         return row
 
@@ -74,35 +65,35 @@ class SettingsModel(Base):
 class Settings(Enum):
     @property
     def cog(self) -> str:
-        return sys.modules[self.__class__.__module__].__package__.split(".")[-1]
+        return cast(str, sys.modules[self.__class__.__module__].__package__).split(".")[-1]
 
     @property
     def fullname(self) -> str:
         return self.cog + "." + self.name
 
     @property
-    def default(self) -> T:
-        return self.value
+    def default(self) -> Value:
+        return cast(Value, self.value)
 
     @property
-    def type(self) -> Type[T]:
-        return type(self.default)
+    def type(self) -> Type[Value]:
+        return type(cast(Value, self.default))
 
-    async def get(self) -> T:
+    async def get(self) -> Value:
         """Get the value of this setting."""
 
-        return await SettingsModel.get(self.type, self.fullname, self.default)
+        return cast(Value, await SettingsModel.get(self.type, self.fullname, self.default))
 
-    async def set(self, value: T) -> T:
+    async def set(self, value: Value) -> Value:
         """Set the value of this setting."""
 
         await SettingsModel.set(self.type, self.fullname, value)
         return value
 
-    async def reset(self) -> T:
+    async def reset(self) -> Value:
         """Reset the value of this setting to its default value."""
 
-        return await self.set(self.default)
+        return cast(Value, await self.set(self.default))
 
 
 class RoleSettings:
@@ -110,7 +101,7 @@ class RoleSettings:
     async def get(name: str) -> int:
         """Get the value of this role setting."""
 
-        return await SettingsModel.get(int, f"role:{name}", -1)
+        return cast(int, await SettingsModel.get(int, f"role:{name}", -1))
 
     @staticmethod
     async def set(name: str, role_id: int) -> int:

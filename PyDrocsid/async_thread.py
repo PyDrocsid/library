@@ -1,10 +1,11 @@
 import threading
 from asyncio import Semaphore, Lock, Event, get_running_loop, AbstractEventLoop, gather, create_task
 
-from functools import partial, update_wrapper, wraps
-from typing import Callable, TypeVar, Optional, Coroutine, Awaitable
+from functools import partial, wraps
+from typing import Callable, TypeVar, Optional, Coroutine, Awaitable, ParamSpec, Any
 
 T = TypeVar("T")
+P = ParamSpec("P")
 
 
 class Thread(threading.Thread):
@@ -69,17 +70,15 @@ async def semaphore_gather(n: int, *tasks: Coroutine) -> list:
     return list(await gather(*map(inner, tasks)))
 
 
-class LockDeco:
-    """Decorator for synchronisation of async functions"""
+def lock_deco(func: Callable[..., Awaitable[T]]) -> Callable[..., Awaitable[T]]:
+    lock = Lock()
 
-    def __init__(self, func):
-        self.lock = Lock()
-        self.func = func
-        update_wrapper(self, func)
+    @wraps(func)
+    async def inner(*args: Any, **kwargs: Any) -> T:
+        async with lock:
+            return await func(*args, **kwargs)
 
-    async def __call__(self, *args, **kwargs):
-        async with self.lock:
-            return await self.func(*args, **kwargs)
+    return inner
 
 
 def run_as_task(func):
