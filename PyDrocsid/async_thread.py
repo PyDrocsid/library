@@ -1,58 +1,24 @@
-import threading
-from asyncio import Semaphore, Lock, Event, get_running_loop, AbstractEventLoop, gather, create_task
+from asyncio import Semaphore, Lock, Event, gather, create_task, get_event_loop
+from concurrent.futures import ThreadPoolExecutor
 
-from functools import partial, wraps
-from typing import Callable, TypeVar, Optional, Coroutine, Awaitable, ParamSpec, Any
+from functools import wraps
+from typing import Callable, TypeVar, Coroutine, Awaitable, ParamSpec, Any, cast
 
 T = TypeVar("T")
 P = ParamSpec("P")
 
-
-class Thread(threading.Thread):
-    def __init__(self, func: Callable[..., T], loop: AbstractEventLoop):
-        super().__init__()
-
-        self._return: Optional[T] = None
-        self._func: Callable[..., T] = func
-        self._event = Event()
-        self._loop: AbstractEventLoop = loop
-
-    async def wait(self):
-        """Wait for function to finish and return the result."""
-
-        await self._event.wait()
-        return self._return
-
-    def run(self):
-        """Run the function and set the event after completion."""
-
-        try:
-            self._return = True, self._func()
-        except Exception as e:  # skipcq: PYL-W0703
-            self._return = False, e
-        self._loop.call_soon_threadsafe(self._event.set)
+executor = ThreadPoolExecutor()
 
 
-async def run_in_thread(func, *args, **kwargs):
-    """
-    Run a synchronous function asynchronously using threading.
+def run_in_thread(func: Callable[..., T]) -> Callable[..., Awaitable[T]]:
+    @wraps(func)
+    async def inner(*args: Any, **kwargs: Any) -> T:
+        return await get_event_loop().run_in_executor(executor, lambda: func(*args, **kwargs))
 
-    :param func: the synchronous function
-    :param args: positional arguments to pass to the function
-    :param kwargs: keyword arguments to pass to the function
-    :return: the return value of func(*args, **kwargs)
-    """
-
-    thread = Thread(partial(func, *args, **kwargs), get_running_loop())
-    thread.start()
-    ok, result = await thread.wait()
-    if not ok:
-        raise result
-
-    return result
+    return inner
 
 
-async def semaphore_gather(n: int, *tasks: Coroutine) -> list:
+async def semaphore_gather(n: int, *tasks: Awaitable[T]) -> list[T]:
     """
     Like asyncio.gather, but limited to n concurrent tasks.
 
@@ -63,7 +29,7 @@ async def semaphore_gather(n: int, *tasks: Coroutine) -> list:
 
     semaphore = Semaphore(n)
 
-    async def inner(t):
+    async def inner(t: Awaitable[T]) -> T:
         async with semaphore:
             return await t
 
@@ -81,14 +47,14 @@ def lock_deco(func: Callable[..., Awaitable[T]]) -> Callable[..., Awaitable[T]]:
     return inner
 
 
-def run_as_task(func):
+def run_as_task(func: Callable[..., Awaitable[T]]) -> Callable[..., Awaitable[None]]:
     """
     Decorator for async functions.
     Instead of calling the decorated function directly, this will create a task for it and return immediately.
     """
 
     @wraps(func)
-    async def inner(*args, **kwargs):
+    async def inner(*args: Any, **kwargs: Any) -> None:
         create_task(func(*args, **kwargs))
 
     return inner
@@ -109,9 +75,9 @@ async def gather_any(*coroutines: Awaitable[T]) -> tuple[int, T]:
     """
 
     event = Event()
-    result: list[tuple[int, bool, T]] = []
+    result: list[tuple[int, bool, T | Exception]] = []
 
-    async def inner(i: int, coro: Awaitable[T]):
+    async def inner(i: int, coro: Awaitable[T]) -> None:
         # noinspection PyBroadException
         try:
             result.append((i, True, await coro))
@@ -128,6 +94,6 @@ async def gather_any(*coroutines: Awaitable[T]) -> tuple[int, T]:
 
     idx, ok, value = result[0]
     if not ok:
-        raise GatherAnyError(idx, value)
+        raise GatherAnyError(idx, cast(Exception, value))
 
-    return idx, value
+    return idx, cast(T, value)
