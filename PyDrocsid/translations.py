@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections import namedtuple
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 import yaml
 
@@ -11,7 +11,7 @@ from PyDrocsid.logger import get_logger
 logger = get_logger(__name__)
 
 
-def merge(base: dict, src: dict):
+def merge(base: dict[Any, Any], src: dict[Any, Any]) -> None:
     """
     Merge two dictionaries recursively by copying/merging the key-value pairs from src into base.
 
@@ -33,10 +33,12 @@ class _FormatString(str):
     __call__ = str.format
 
 
-class _PluralDict(dict):
+class _PluralDict(dict[str, Any]):
     """Dictionary for pluralization containing multiple _FormatStrings"""
 
-    def __call__(self, *args, **kwargs) -> str:
+    _fallback: Any
+
+    def __call__(self, *args: Any, **kwargs: Any) -> str:
         """Choose and format the pluralized string."""
 
         # get count parameter from kwargs
@@ -55,16 +57,16 @@ class _PluralDict(dict):
             translation = self.many
 
         # format and return string
-        return translation(*args, **kwargs)
+        return cast(str, translation(*args, **kwargs))
 
-    def __getattribute__(self, item: str):
+    def __getattribute__(self, item: str) -> Any:
         """Use __getattr__ for non-protected attributes."""
 
         if item.startswith("_"):
             return super().__getattribute__(item)
         return self.__getattr__(item)
 
-    def __getattr__(self, item):
+    def __getattr__(self, item: str) -> Any:
         """Return a nested item and wrap it in a _FormatString or _PluralDict"""
 
         value = self[item] if item in self else self._fallback[item]
@@ -84,14 +86,14 @@ Source = namedtuple("Source", ["priority", "path"])
 class _Namespace:
     """Translation namespace containing translations for main and fallback language"""
 
-    def __init__(self):
+    def __init__(self) -> None:
         # list of source directories for translation files
         self._sources: list[Source] = []
 
         # map languages to translation dictionaries
         self._translations: dict[str, dict[str, Any]] = {}
 
-    def _add_source(self, prio: int, source: Path):
+    def _add_source(self, prio: int, source: Path) -> None:
         """
         Add a new translation source.
 
@@ -149,10 +151,10 @@ class Translations:
     LANGUAGE: str
     FALLBACK: str = "en"
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._namespaces: dict[str, _Namespace] = {}
 
-    def register_namespace(self, name: str, path: Path, prio: int = 0):
+    def register_namespace(self, name: str, path: Path, prio: int = 0) -> None:
         """Register a new source for a translation namespace."""
 
         if name not in self._namespaces:
@@ -164,13 +166,13 @@ class Translations:
         # noinspection PyProtectedMember
         self._namespaces[name]._add_source(prio, path)
 
-    def __getattr__(self, item: str):
+    def __getattr__(self, item: str) -> Any:
         """Return a translation namespace"""
 
         return self._namespaces[item]
 
 
-def load_translations(path: Path, prio: int = 0):
+def load_translations(path: Path, prio: int = 0) -> None:
     """Recursively load all translations in a given directory and register the appropriate namespaces."""
 
     # skip hidden directories
