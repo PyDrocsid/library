@@ -1,36 +1,41 @@
+from __future__ import annotations
+
 from asyncio import Lock
-from typing import TypeVar
+from typing import TypeVar, Any, Generic
 
 T = TypeVar("T")
 
 
-class MultiLock:
+class _LockContext(Generic[T]):
+    def __init__(self, multilock: MultiLock[T], key: T):
+        self.multilock = multilock
+        self.key = key
+
+    async def __aenter__(self, *_: Any) -> None:
+        if self.key is not None:
+            await self.multilock.acquire(self.key)
+
+    async def __aexit__(self, *_: Any) -> None:
+        if self.key is not None:
+            self.multilock.release(self.key)
+
+
+class MultiLock(Generic[T]):
     """Container for multiple async locks which automatically deletes unused locks"""
 
     def __init__(self) -> None:
         self.locks: dict[T, Lock] = {}
         self.requests: dict[T, int] = {}
 
-    def __getitem__(self, key: T):
-        multilock: MultiLock = self
+    def __getitem__(self, key: T) -> _LockContext[T]:
+        return _LockContext(self, key)
 
-        class LockContext:
-            async def __aenter__(self, *_):
-                if key is not None:
-                    await multilock.acquire(key)
-
-            async def __aexit__(self, *_):
-                if key is not None:
-                    multilock.release(key)
-
-        return LockContext()
-
-    async def acquire(self, key: T):
+    async def acquire(self, key: T) -> None:
         lock: Lock = self.locks.setdefault(key, Lock())
         self.requests[key] = self.requests.get(key, 0) + 1
         await lock.acquire()
 
-    def release(self, key: T):
+    def release(self, key: T) -> None:
         lock: Lock = self.locks[key]
         lock.release()
         self.requests[key] -= 1

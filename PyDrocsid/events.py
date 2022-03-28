@@ -271,7 +271,7 @@ class Events:
 
 
 event_handlers: dict[str, list[Callable[..., Awaitable[None]]]] = {}
-handler_lock = MultiLock()
+handler_lock = MultiLock[Any]()
 
 AsyncFunc = TypeVar("AsyncFunc", bound=Callable[..., Awaitable[None]])
 
