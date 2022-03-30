@@ -149,7 +149,7 @@ class BasePermissionLevel(Enum):
         """Return whether this permission level is granted to a given member."""
 
         level: BasePermissionLevel = await self.get_permission_level(member)
-        return level.level >= self.level  # skipcq: PYL-W0143
+        return level.level >= self.level
 
     @property
     def check(self):
