@@ -4,7 +4,7 @@ from functools import partial
 from os import getenv
 from pathlib import Path
 from subprocess import getoutput  # noqa: S404
-from typing import Type, Union, TypeVar, Any, cast
+from typing import Type, TypeVar, Any, cast
 
 import yaml
 from discord import Member, User
@@ -107,7 +107,7 @@ def load_language(config: dict[str, Any]) -> None:
 
 
 async def _get_permission_level(
-    permission_levels: dict[str, PermissionLevel], cls: Any, member: Union[Member, User]
+    permission_levels: dict[str, PermissionLevel], cls: Any, member: User | Member
 ) -> BasePermissionLevel:
     """Get the permission level of a given member."""
 
