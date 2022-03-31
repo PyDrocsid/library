@@ -221,7 +221,7 @@ class DB:
     def create_session(self) -> AsyncSession:
         """Create a new async session and store it in the context variable."""
 
-        self._session.set(session := AsyncSession(self.engine))
+        self._session.set(session := AsyncSession(self.engine, expire_on_commit=False))
         self._close_event.set(Event())
         return session
 
