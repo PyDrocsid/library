@@ -1,7 +1,7 @@
 import re
 from datetime import datetime
 from functools import partial
-from typing import Callable, Awaitable, TypeVar, Any, Iterable
+from typing import Callable, Awaitable, TypeVar, Any, Iterable, cast, Coroutine, ParamSpec
 
 from discord import (
     Member,
@@ -20,6 +20,7 @@ from discord import (
     Guild,
     Invite,
     Thread,
+    ClientUser,
 )
 from discord.abc import Messageable
 from discord.ext.commands.bot import Bot
@@ -29,6 +30,9 @@ from discord.ext.commands.errors import CommandError
 from PyDrocsid.command_edit import handle_delete, handle_edit
 from PyDrocsid.database import db_wrapper
 from PyDrocsid.multilock import MultiLock
+
+T = TypeVar("T")
+P = ParamSpec("P")
 
 
 class StopEventHandling(Exception):  # noqa: N818
@@ -49,7 +53,7 @@ async def extract_from_raw_reaction_event(bot: Bot, event: RawReactionActionEven
     :return: a (message, emoji, user) tuple or None, if any of these entities does not exist
     """
 
-    channel: Messageable | None = bot.get_channel(event.channel_id)
+    channel = cast(Messageable | None, bot.get_channel(event.channel_id))
     if channel is None:
         return None
 
@@ -99,7 +103,7 @@ class Events:
         # detect whether the message contains just a mention of the bot
         # and call the bot_ping event
         if match := re.match(r"^<@[&!]?(\d+)>$", message.content.strip()):
-            mentions = {bot.user.id}
+            mentions = {cast(ClientUser, bot.user).id}
 
             # find managed role of this bot
             if message.guild is not None:
@@ -148,7 +152,7 @@ class Events:
         async def prepare() -> tuple[Messageable, Message] | None:
             """Extract channel and message from event"""
 
-            channel: Messageable | None = bot.get_channel(event.channel_id)
+            channel = cast(Messageable | None, bot.get_channel(event.channel_id))
             if channel is None:
                 return None
 
@@ -186,7 +190,7 @@ class Events:
         async def prepare() -> tuple[Message] | None:
             """Extract message from event."""
 
-            channel: Messageable | None = bot.get_channel(event.channel_id)
+            channel = cast(Messageable | None, bot.get_channel(event.channel_id))
             if channel is None:
                 return None
 
@@ -202,7 +206,7 @@ class Events:
         async def prepare() -> tuple[Message, PartialEmoji] | None:
             """Extract message and emoji from event."""
 
-            channel: Messageable | None = bot.get_channel(event.channel_id)
+            channel = cast(Messageable | None, bot.get_channel(event.channel_id))
             if channel is None:
                 return None
 
@@ -262,7 +266,7 @@ class Events:
         await call_event_handlers("invite_delete", invite, identifier=invite.code)
 
     @staticmethod
-    async def on_command_error(_: Bot, ctx: Context, error: CommandError) -> None:
+    async def on_command_error(_: Bot, ctx: Context[Bot], error: CommandError) -> None:
         await call_event_handlers("command_error", ctx, error, identifier=ctx.message.id)
 
     @staticmethod
@@ -328,9 +332,12 @@ def register_events(bot: Bot) -> None:
     """Register all events defined in Events class"""
 
     for e in dir(Events):
-        func = getattr(Events, e)
+        # TODO use ParamSpec once mypy supports it
+        func: Callable[..., Awaitable[None]] = getattr(Events, e)
         if e.startswith("on_") and callable(func):
             # always wrap event handlers in database sessions and pass the bot instance as first argument
-            handler = partial(db_wrapper(func), bot)
-            handler.__name__ = e  # type: ignore
-            bot.event(handler)
+            handler: Callable[..., Awaitable[None]] = partial(db_wrapper(func), bot)
+            handler.__name__ = e
+
+            # TODO use ParamSpec once mypy supports it
+            bot.event(cast(Callable[..., Coroutine[None, None, None]], handler))
