@@ -5,6 +5,7 @@ from aiohttp import ClientSession
 
 from PyDrocsid.environment import GITHUB_TOKEN
 
+
 GitHubUser = namedtuple("GitHubUser", ["id", "name", "profile"])
 
 API_URL = "https://api.github.com/graphql"

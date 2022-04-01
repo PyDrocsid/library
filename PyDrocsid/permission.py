@@ -15,6 +15,7 @@ from PyDrocsid.environment import CACHE_TTL
 from PyDrocsid.redis import redis
 from PyDrocsid.translations import t
 
+
 # context variable for overriding the permission level of the user who invoked the current command
 permission_override: ContextVar[BasePermissionLevel] = ContextVar("permission_override")
 

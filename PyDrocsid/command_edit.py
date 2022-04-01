@@ -8,6 +8,7 @@ from PyDrocsid.environment import RESPONSE_LINK_TTL
 from PyDrocsid.logger import get_logger
 from PyDrocsid.redis import redis
 
+
 logger = get_logger(__name__)
 
 

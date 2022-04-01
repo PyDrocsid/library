@@ -13,6 +13,7 @@ from PyDrocsid.permission import BasePermissionLevel, PermissionLevel
 from PyDrocsid.settings import RoleSettings
 from PyDrocsid.translations import Translations
 
+
 T = TypeVar("T")
 
 

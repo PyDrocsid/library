@@ -11,6 +11,7 @@ from PyDrocsid.database import Base, db
 from PyDrocsid.environment import CACHE_TTL
 from PyDrocsid.redis import redis
 
+
 T = TypeVar("T")
 
 

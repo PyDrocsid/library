@@ -17,6 +17,7 @@ from PyDrocsid.environment import DISABLED_COGS
 from PyDrocsid.events import event_handlers, register_events
 from PyDrocsid.logger import get_logger
 
+
 logger = get_logger(__name__)
 
 

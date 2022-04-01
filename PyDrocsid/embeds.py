@@ -9,6 +9,7 @@ from PyDrocsid.command import reply
 from PyDrocsid.environment import DISABLE_PAGINATION
 from PyDrocsid.pagination import create_pagination
 
+
 # an "empty" markdown string (e.g. for empty field names in embeds)
 EMPTY_MARKDOWN = "_ _"
 
