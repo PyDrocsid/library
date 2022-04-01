@@ -120,7 +120,10 @@ async def attachment_to_file(attachment: Attachment) -> File:
 async def read_normal_message(bot: Bot, channel: TextChannel, author: Member) -> tuple[str, list[File]]:
     """Read a message and return content and attachments."""
 
-    msg: Message = await bot.wait_for("message", check=lambda m: m.channel == channel and m.author == author)
+    def predicate(m: Message) -> bool:
+        return m.author == author and m.channel == channel
+
+    msg: Message = await bot.wait_for("message", check=predicate)
     return msg.content, [await attachment_to_file(attachment) for attachment in msg.attachments]
 
 
