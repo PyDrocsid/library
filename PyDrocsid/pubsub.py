@@ -14,7 +14,8 @@ PubSubResult = TypeVar("PubSubResult")
 class Subscription(Generic[PubSubArgs, PubSubResult]):
     channel: PubSubChannel[PubSubArgs, PubSubResult]
 
-    def __init__(self, func: Callable[PubSubArgs, Awaitable[PubSubResult | None]]) -> None:
+    # TODO use Concatenate once mypy supports it
+    def __init__(self, func: Callable[..., Awaitable[PubSubResult | None]]) -> None:
         self._func = func  # callback function
         self._cls: Type[Cog] | None = None  # cog class
 
