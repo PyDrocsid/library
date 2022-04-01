@@ -11,9 +11,10 @@ from discord.abc import Messageable, User
 from discord.ext.commands.bot import Bot
 from discord.ext.commands.cog import Cog as DiscordCog
 from discord.ext.commands.context import Context
+from discord.ext.commands.core import Command
 from discord.ext.commands.errors import CommandError
 
-from PyDrocsid.config import Config, Contributor
+from PyDrocsid.config import Config
 from PyDrocsid.environment import DISABLED_COGS
 from PyDrocsid.events import register_events, event_handlers
 from PyDrocsid.logger import get_logger
@@ -21,7 +22,7 @@ from PyDrocsid.logger import get_logger
 logger = get_logger(__name__)
 
 
-class Cog(DiscordCog):  # type: ignore
+class Cog(DiscordCog):
     CONTRIBUTORS: list[tuple[int, str]]
     DEPENDENCIES: list[Type[Cog]] = []
 
@@ -127,7 +128,7 @@ class Cog(DiscordCog):  # type: ignore
     async def on_invite_delete(self, invite: Invite) -> None:
         pass
 
-    async def on_command_error(self, ctx: Context, error: CommandError) -> None:
+    async def on_command_error(self, ctx: Context[Bot], error: CommandError) -> None:
         pass
 
     async def on_thread_join(self, thread: Thread) -> None:
@@ -241,9 +242,9 @@ def load_cogs(bot: Bot, *cogs: Cog) -> None:
 
     if bot.cogs:
         logger.info("\033[1m\033[32m%s Cog%s enabled:\033[0m", len(bot.cogs), "s" * (len(bot.cogs) > 1))
-        for cog in bot.cogs.values():
-            commands = ", ".join(cmd.name for cmd in cog.get_commands())
-            logger.info(" + %s %s", cog.__class__.__name__, commands and f"({commands})")
+        for _cog in bot.cogs.values():
+            commands = ", ".join(cmd.name for cmd in cast(list[Command[Cog, Any, Any]], _cog.get_commands()))
+            logger.info(" + %s %s", _cog.__class__.__name__, commands and f"({commands})")
 
     if disabled_cogs:
         logger.info("\033[1m\033[31m%s Cog%s disabled:\033[0m", len(disabled_cogs), "s" * (len(disabled_cogs) > 1))
