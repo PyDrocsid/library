@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Callable, TypeVar, cast
+from typing import Any, Callable, TypeVar
 
 from discord import (
     User,
@@ -16,10 +16,12 @@ from discord import (
     Thread,
 )
 from discord.abc import Messageable
+from discord.ext.commands.bot import Bot
 from discord.ext.commands.context import Context
 from discord.ext.commands.core import Command
 from discord.ext.commands.errors import CommandError
 
+from PyDrocsid.cog import Cog
 from PyDrocsid.command_edit import link_response
 from PyDrocsid.emojis import name_to_emoji
 from PyDrocsid.environment import REPLY, MENTION_AUTHOR
@@ -32,7 +34,7 @@ from PyDrocsid.util import check_message_send_permissions
 t = t.g
 
 
-class UserCommandError(CommandError):  # type: ignore
+class UserCommandError(CommandError):
     def __init__(self, user: User | Member, message: str | None = None, *args: Any):
         super().__init__(message, *args)
         self.user = user
@@ -74,7 +76,7 @@ def optional_permissions(*permissions: BasePermission) -> Callable[[Func], Func]
     return deco
 
 
-def get_optional_permissions(command: Command) -> list[BasePermission]:
+def get_optional_permissions(command: Command[Cog, Any, Any]) -> list[BasePermission]:
     """Get the optional permissions of a given command, set by the optional_permissions decorator."""
 
     return getattr(command.callback, "optional_permissions", [])
@@ -97,11 +99,11 @@ def make_error(message: str, user: User | Member | None = None) -> Embed:
     return embed
 
 
-async def can_run_command(command: Command, ctx: Context) -> bool:
+async def can_run_command(command: Command[Cog, Any, Any], ctx: Context[Bot]) -> bool:
     """Return whether a command can be executed in a given context."""
 
     try:
-        return cast(bool, await command.can_run(ctx))
+        return await command.can_run(ctx)
     except CommandError:
         return False
 
@@ -145,7 +147,7 @@ async def reply(
     return msg
 
 
-async def add_reactions(ctx: Context | Message, *emojis: str) -> None:
+async def add_reactions(ctx: Context[Any] | Message, *emojis: str) -> None:
     """
     Add reactions to a given message.
 
