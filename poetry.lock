@@ -780,7 +780,7 @@ multidict = ">=4.0"
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.10"
-content-hash = "f80e9524b8edf0f94602c5ddb800e8c51f3b798f1791c6e233597147c8a595b8"
+content-hash = "8f403f2c2ef8e66902c01df379c586c7e5e06ee5ee4e8b17d229d7835cdcc3d4"
 
 [metadata.files]
 aenum = [

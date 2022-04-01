@@ -4,7 +4,7 @@ from functools import partial
 from os import getenv
 from pathlib import Path
 from subprocess import getoutput  # noqa: S404
-from typing import Type, Union, TypeVar
+from typing import Type, TypeVar, Union
 
 import yaml
 from discord import Member, User

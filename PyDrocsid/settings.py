@@ -1,14 +1,13 @@
 from __future__ import annotations
 
 import sys
+from typing import Optional, Type, TypeVar, Union
 
 from aenum import NoAliasEnum
-from typing import Union, Optional, Type, TypeVar
-
 from sqlalchemy import Column, String
 
 from PyDrocsid.async_thread import LockDeco
-from PyDrocsid.database import db, Base
+from PyDrocsid.database import Base, db
 from PyDrocsid.environment import CACHE_TTL
 from PyDrocsid.redis import redis
 

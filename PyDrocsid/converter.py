@@ -1,8 +1,8 @@
 import re
 from typing import Optional, Union
 
-from discord import PartialEmoji, Member, User, Guild, NotFound, HTTPException
-from discord.ext.commands import PartialEmojiConverter, BadArgument, ColorConverter, Converter
+from discord import Guild, HTTPException, Member, NotFound, PartialEmoji, User
+from discord.ext.commands import BadArgument, ColorConverter, Converter, PartialEmojiConverter
 
 from PyDrocsid.emojis import emoji_to_name
 from PyDrocsid.translations import t

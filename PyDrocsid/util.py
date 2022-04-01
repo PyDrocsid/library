@@ -1,24 +1,24 @@
 import io
 import re
-from socket import gethostbyname, socket, AF_INET, SOCK_STREAM, timeout, SHUT_RD
+from socket import AF_INET, SHUT_RD, SOCK_STREAM, gethostbyname, socket, timeout
 from time import time
-from typing import Optional, List, Tuple
+from typing import List, Optional, Tuple
 
 from discord import (
-    Embed,
-    Message,
-    File,
     Attachment,
-    TextChannel,
-    Member,
-    PartialEmoji,
+    Embed,
+    File,
     Forbidden,
-    Role,
     Guild,
+    Member,
+    Message,
+    PartialEmoji,
     Permissions,
+    Role,
+    TextChannel,
 )
 from discord.abc import Messageable
-from discord.ext.commands import CommandError, Bot
+from discord.ext.commands import Bot, CommandError
 
 from PyDrocsid.config import Config
 from PyDrocsid.emojis import name_to_emoji

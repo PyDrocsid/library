@@ -7,10 +7,10 @@ from enum import Enum
 from typing import Union
 
 from discord import Member, User
-from discord.ext.commands import check, Context, CheckFailure
-from sqlalchemy import Column, String, Integer
+from discord.ext.commands import CheckFailure, Context, check
+from sqlalchemy import Column, Integer, String
 
-from PyDrocsid.database import db, Base
+from PyDrocsid.database import Base, db
 from PyDrocsid.environment import CACHE_TTL
 from PyDrocsid.redis import redis
 from PyDrocsid.translations import t

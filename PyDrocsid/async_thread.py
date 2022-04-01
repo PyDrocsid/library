@@ -1,8 +1,7 @@
 import threading
-from asyncio import Semaphore, Lock, Event, get_running_loop, AbstractEventLoop, gather, create_task
-
+from asyncio import AbstractEventLoop, Event, Lock, Semaphore, create_task, gather, get_running_loop
 from functools import partial, update_wrapper, wraps
-from typing import Callable, TypeVar, Optional, Coroutine, Awaitable
+from typing import Awaitable, Callable, Coroutine, Optional, TypeVar
 
 T = TypeVar("T")
 

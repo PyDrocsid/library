@@ -3,27 +3,27 @@ import time
 from contextlib import asynccontextmanager
 from typing import Union, cast
 
-from PyDrocsid.async_thread import gather_any
 from discord import (
-    User,
-    Member,
-    Embed,
-    Message,
-    Forbidden,
-    TextChannel,
     ButtonStyle,
-    ui,
-    NotFound,
-    InteractionResponse,
+    Embed,
+    Forbidden,
     Interaction,
+    InteractionResponse,
+    Member,
+    Message,
+    NotFound,
+    TextChannel,
+    User,
+    ui,
 )
 from discord.abc import Messageable
-from discord.ext.commands import Command, Context, CommandError
-from discord.ui import View, Button
+from discord.ext.commands import Command, CommandError, Context
+from discord.ui import Button, View
 
+from PyDrocsid.async_thread import gather_any
 from PyDrocsid.command_edit import link_response
 from PyDrocsid.emojis import name_to_emoji
-from PyDrocsid.environment import REPLY, MENTION_AUTHOR
+from PyDrocsid.environment import MENTION_AUTHOR, REPLY
 from PyDrocsid.events import call_event_handlers
 from PyDrocsid.material_colors import MaterialColors
 from PyDrocsid.permission import BasePermission

@@ -3,16 +3,18 @@ from __future__ import annotations
 import re
 import sys
 from datetime import datetime
-from typing import Union, Type, Optional, Callable, Awaitable
+from typing import Awaitable, Callable, Optional, Type, Union
 from urllib.parse import urljoin
 
-from discord import Member, Message, RawMessageDeleteEvent, VoiceState, Guild, Invite, PartialEmoji, Role, Thread
+from discord import Guild, Invite, Member, Message, PartialEmoji, RawMessageDeleteEvent, Role, Thread, VoiceState
 from discord.abc import Messageable, User
-from discord.ext.commands import Cog as DiscordCog, Bot, Context, CommandError
+from discord.ext.commands import Bot
+from discord.ext.commands import Cog as DiscordCog
+from discord.ext.commands import CommandError, Context
 
 from PyDrocsid.config import Config, Contributor
 from PyDrocsid.environment import DISABLED_COGS
-from PyDrocsid.events import register_events, event_handlers
+from PyDrocsid.events import event_handlers, register_events
 from PyDrocsid.logger import get_logger
 
 logger = get_logger(__name__)

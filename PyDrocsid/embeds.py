@@ -1,7 +1,7 @@
 from copy import deepcopy
 from typing import List, Optional
 
-from discord import Embed, Message, User, InteractionResponse
+from discord import Embed, InteractionResponse, Message, User
 from discord.abc import Messageable
 from discord.embeds import EmptyEmbed
 

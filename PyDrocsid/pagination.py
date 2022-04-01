@@ -1,7 +1,7 @@
-from typing import Optional, Union, List, Dict
+from typing import Dict, List, Optional, Union
 
 import discord
-from discord import Embed, User, Message, ApplicationContext
+from discord import ApplicationContext, Embed, Message, User
 from discord.abc import Messageable
 from discord.ext.commands import Context
 
