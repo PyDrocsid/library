@@ -1,6 +1,8 @@
 import asyncio
+from typing import cast
 
-from discord import Message, NotFound, TextChannel, Forbidden, HTTPException
+from discord import Message, NotFound, TextChannel, Forbidden, HTTPException, Thread
+from discord.abc import Snowflake
 from discord.ext.commands.bot import Bot
 from discord.ext.commands.context import Context
 
@@ -11,7 +13,7 @@ from PyDrocsid.redis import redis
 logger = get_logger(__name__)
 
 
-async def link_response(msg: Message | Context, *response_messages: Message) -> None:
+async def link_response(msg: Message | Context[Bot], *response_messages: Message) -> None:
     """Create a link from message to a given list of bot responses and add it to redis."""
 
     if not response_messages:
@@ -37,7 +39,7 @@ async def handle_edit(bot: Bot, message: Message) -> None:
     await handle_delete(bot, message.channel.id, message.id)
     for reaction in message.reactions:
         if reaction.me:
-            await reaction.remove(bot.user)
+            await reaction.remove(cast(Snowflake, bot.user))
     await bot.process_commands(message)
 
 
@@ -47,13 +49,8 @@ async def handle_delete(bot: Bot, channel_id: int, message_id: int) -> None:
     responses = await redis.lrange(key := f"bot_response:channel={channel_id},msg={message_id}", 0, -1)
     await redis.delete(key)
 
-    channel: TextChannel | None = bot.get_channel(channel_id)
-    if not channel:
-        logger.warning("could not find channel %s", channel_id)
-        return
-
     async def delete_message(chn_id: int, msg_id: int) -> None:
-        if not (chn := bot.get_channel(chn_id)):
+        if not isinstance(chn := bot.get_channel(chn_id), (TextChannel, Thread)):
             logger.warning("could not delete message %s in unknown channel %s", msg_id, chn_id)
             return
 
