@@ -45,8 +45,8 @@ set -ex
 poetry install --no-root
 ./pre-commit.sh install
 """
-
 interpreter = "bash"
+
 [tool.black]
 target-version = ["py310"]
 line-length = 120
