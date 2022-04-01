@@ -5,11 +5,9 @@ from datetime import datetime, timezone
 from functools import partial, wraps
 from typing import Any, Optional, Type, TypeVar
 
-# noinspection PyProtectedMember
 from sqlalchemy import DateTime, TypeDecorator
 from sqlalchemy.engine import URL
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, create_async_engine
-from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.future import Select
 from sqlalchemy.future import select as sa_select
 from sqlalchemy.orm import DeclarativeMeta, registry, selectinload
