@@ -7,6 +7,7 @@ from enum import Enum
 from typing import Callable, Awaitable, cast, Iterable
 
 from discord import Member, User
+from discord.ext.commands.bot import Bot
 from discord.ext.commands.context import Context
 from discord.ext.commands.core import check
 from discord.ext.commands.errors import CheckFailure
@@ -103,7 +104,7 @@ class BasePermission(Enum):
         return await (await self.resolve()).check_permissions(member)
 
     @property
-    def check(self) -> Callable[[Context], Awaitable[bool]]:
+    def check(self) -> Callable[[Context[Bot]], Awaitable[bool]]:
         """Decorator for bot commands to require this permission when invoking this command."""
 
         return check_permission_level(self)
@@ -155,7 +156,7 @@ class BasePermissionLevel(Enum):
         return level.level >= self.level
 
     @property
-    def check(self) -> Callable[[Context], Awaitable[bool]]:
+    def check(self) -> Callable[[Context[Bot]], Awaitable[bool]]:
         """Decorator for bot commands to require this permission level when invoking this command."""
 
         return check_permission_level(self)
@@ -167,10 +168,10 @@ class BasePermissionLevel(Enum):
         return max(cast(Iterable[BasePermissionLevel], cls), key=lambda x: x.level)
 
 
-def check_permission_level(level: BasePermission | BasePermissionLevel) -> Callable[[Context], Awaitable[bool]]:
+def check_permission_level(level: BasePermission | BasePermissionLevel) -> Callable[[Context[Bot]], Awaitable[bool]]:
     """Discord commmand check to require a given level when invoking the command."""
 
-    async def inner(ctx: Context) -> bool:
+    async def inner(ctx: Context[Bot]) -> bool:
         member: User | Member = ctx.author
         if not isinstance(member, Member):
             member = ctx.bot.guilds[0].get_member(ctx.author.id) or member
@@ -181,4 +182,4 @@ def check_permission_level(level: BasePermission | BasePermissionLevel) -> Calla
 
     inner.level = level  # type: ignore
 
-    return cast(Callable[[Context], Awaitable[bool]], check(inner))
+    return cast(Callable[[Context[Bot]], Awaitable[bool]], check(inner))
