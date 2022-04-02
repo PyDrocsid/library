@@ -6,6 +6,7 @@ from json import JSONDecodeError
 from pathlib import Path
 from urllib.request import Request, urlopen
 
+
 EMOJI_JSON_REGEX = re.compile(r'{("\w+":\[({"names":.+"surrogates":.+},)*{"names":.+"surrogates":.+}])+}')
 
 

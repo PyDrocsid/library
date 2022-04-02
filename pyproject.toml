@@ -31,11 +31,11 @@ wemake-python-styleguide = "^0.16.1"
 # SQLAlchemy = { extras = ["mypy"], version = "^1.4.32" }
 
 [tool.poe.tasks]
-flake8 = "flake8 PyDrocsid --count --statistics --show-source"
-isort = "isort PyDrocsid"
-black = "black PyDrocsid"
+flake8 = "flake8 . --count --statistics --show-source"
+isort = "isort ."
+black = "black ."
 format = ["isort", "black"]
-# mypy = "mypy PyDrocsid"
+# mypy = "mypy ."
 lint = ["format", "flake8"]
 pre-commit = ["lint"]
 
