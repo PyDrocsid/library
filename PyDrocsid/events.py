@@ -129,10 +129,13 @@ class Events:
 
     @staticmethod
     async def on_message_edit(bot: Bot, before: Message, after: Message):
-        await call_event_handlers("message_edit", before, after, identifier=after.id)
-
         if before.content != after.content:
             await handle_edit(bot, after)
+
+        await call_event_handlers("message_edit", before, after, identifier=after.id)
+
+        if before.content != after.content and not after.author.bot:
+            await bot.process_commands(after)
 
     @staticmethod
     async def on_raw_message_edit(bot: Bot, event: RawMessageUpdateEvent):
@@ -153,15 +156,20 @@ class Events:
             except NotFound:
                 return
 
+            # delete bot responses if old message contained a command
+            await handle_edit(bot, message)
             prepared.append(message)
             return channel, message
 
         await call_event_handlers("raw_message_edit", identifier=event.message_id, prepare=prepare)
 
-        if prepared:
-            # delete bot responses if old message contained a command
-            # and execute command if new message contains one
-            await handle_edit(bot, prepared[0])
+        if not prepared:
+            return
+
+        msg = prepared.pop()
+        if not msg.author.bot:
+            # execute command if new message contains one
+            await bot.process_commands(msg)
 
     @staticmethod
     async def on_raw_reaction_add(bot: Bot, event: RawReactionActionEvent):
