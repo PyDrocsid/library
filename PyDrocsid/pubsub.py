@@ -3,6 +3,7 @@ import sys
 from typing import Awaitable, Callable
 
 from PyDrocsid.config import Config
+from PyDrocsid.database import db_context
 
 
 class PubSubChannel:
@@ -44,7 +45,10 @@ class PubSubChannel:
                     return
 
                 # ignore disabled cogs
-                if sys.modules[self._cls.__module__].__package__ in Config.ENABLED_COG_PACKAGES:
+                if sys.modules[self._cls.__module__].__package__ not in Config.ENABLED_COG_PACKAGES:
+                    return
+
+                async with db_context():
                     return await self._func(self._cls.instance, *args, **kwargs)
 
             def __set_name__(self, owner, name):
