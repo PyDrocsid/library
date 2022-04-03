@@ -29,7 +29,7 @@ class EmojiConverter(PartialEmojiConverter):
         return PartialEmoji.with_state(connection, animated=False, name=argument, id=None)
 
 
-class Color(Converter):  # type: ignore
+class Color(Converter[int]):
     """Color converter which also supports hex codes."""
 
     async def convert(self, ctx: Context[Bot], argument: str) -> int:
@@ -43,7 +43,7 @@ class Color(Converter):  # type: ignore
         return int(argument, 16)
 
 
-class UserMemberConverter(Converter):  # type: ignore
+class UserMemberConverter(Converter[User | Member]):
     """Return a member or user object depending on whether the user is currently a guild member."""
 
     async def convert(self, ctx: Context[Bot], argument: str) -> User | Member:
