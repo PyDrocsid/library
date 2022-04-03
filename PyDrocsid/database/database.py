@@ -2,31 +2,34 @@ from asyncio import Event
 from contextvars import ContextVar
 from datetime import datetime, timezone
 from functools import partial
-from typing import TypeVar, Type, Any, cast, AsyncIterator
+from typing import Any, AsyncIterator, Type, TypeVar, cast
 
-from sqlalchemy import Column, DateTime, TypeDecorator, Table
+from sqlalchemy import Column, DateTime, Table, TypeDecorator
 from sqlalchemy.engine import URL
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, AsyncEngine
+from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, create_async_engine
 from sqlalchemy.future import select as sa_select
-from sqlalchemy.orm import selectinload, DeclarativeMeta, registry
+from sqlalchemy.orm import DeclarativeMeta, registry, selectinload
 from sqlalchemy.sql import Executable
-from sqlalchemy.sql.expression import exists as sa_exists, delete as sa_delete, Delete
+from sqlalchemy.sql.expression import Delete
+from sqlalchemy.sql.expression import delete as sa_delete
+from sqlalchemy.sql.expression import exists as sa_exists
 from sqlalchemy.sql.functions import count
 from sqlalchemy.sql.selectable import Exists, Select
 
 from ..environment import (
+    DB_DATABASE,
     DB_DRIVER,
     DB_HOST,
-    DB_PORT,
-    DB_DATABASE,
-    DB_USERNAME,
     DB_PASSWORD,
-    SQL_SHOW_STATEMENTS,
+    DB_PORT,
+    DB_USERNAME,
+    MAX_OVERFLOW,
     POOL_RECYCLE,
     POOL_SIZE,
-    MAX_OVERFLOW,
+    SQL_SHOW_STATEMENTS,
 )
 from ..logger import get_logger
+
 
 T = TypeVar("T")
 

@@ -1,7 +1,7 @@
 import asyncio
 from typing import cast
 
-from discord import Message, NotFound, TextChannel, Forbidden, HTTPException, Thread
+from discord import Forbidden, HTTPException, Message, NotFound, TextChannel, Thread
 from discord.abc import Snowflake
 from discord.ext.commands.bot import Bot
 from discord.ext.commands.context import Context
@@ -9,6 +9,7 @@ from discord.ext.commands.context import Context
 from PyDrocsid.environment import RESPONSE_LINK_TTL
 from PyDrocsid.logger import get_logger
 from PyDrocsid.redis import redis
+
 
 logger = get_logger(__name__)
 
@@ -40,7 +41,6 @@ async def handle_edit(bot: Bot, message: Message) -> None:
     for reaction in message.reactions:
         if reaction.me:
             await reaction.remove(cast(Snowflake, bot.user))
-    await bot.process_commands(message)
 
 
 async def handle_delete(bot: Bot, channel_id: int, message_id: int) -> None:

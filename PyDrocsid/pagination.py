@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from discord import Embed, User, Message, Member, InteractionResponse, ButtonStyle, ui, Interaction
+from discord import ButtonStyle, Embed, Interaction, InteractionResponse, Member, Message, User, ui
 from discord.abc import Messageable
 
 from PyDrocsid.command import reply

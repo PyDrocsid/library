@@ -2,10 +2,12 @@ from __future__ import annotations
 
 import asyncio
 import sys
-from typing import Awaitable, Callable, Generic, TypeVar, ParamSpec, Type
+from typing import Awaitable, Callable, Generic, ParamSpec, Type, TypeVar
 
 from PyDrocsid.cog import Cog
 from PyDrocsid.config import Config
+from PyDrocsid.database import db_context
+
 
 PubSubArgs = ParamSpec("PubSubArgs")
 PubSubResult = TypeVar("PubSubResult")
@@ -30,7 +32,8 @@ class Subscription(Generic[PubSubArgs, PubSubResult]):
         if sys.modules[self._cls.__module__].__package__ not in Config.ENABLED_COG_PACKAGES:
             return None
 
-        return await self._func(self._cls.instance, *args, **kwargs)
+        async with db_context():
+            return await self._func(self._cls.instance, *args, **kwargs)
 
     def __set_name__(self, owner: Type[Cog], name: str) -> None:
         # get the cog class the decorated function is defined in

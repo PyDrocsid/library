@@ -1,7 +1,7 @@
 from copy import deepcopy
 from typing import Any, cast
 
-from discord import Embed, Message, User, InteractionResponse, Member
+from discord import Embed, InteractionResponse, Member, Message, User
 from discord.abc import Messageable
 from discord.embeds import EmptyEmbed
 from discord.ext.commands.context import Context
@@ -9,6 +9,7 @@ from discord.ext.commands.context import Context
 from PyDrocsid.command import reply
 from PyDrocsid.environment import DISABLE_PAGINATION
 from PyDrocsid.pagination import create_pagination
+
 
 # an "empty" markdown string (e.g. for empty field names in embeds)
 EMPTY_MARKDOWN = "_ _"

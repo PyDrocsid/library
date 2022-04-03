@@ -826,7 +826,7 @@ multidict = ">=4.0"
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.10"
-content-hash = "d5b37151bea5b38b73850a0a38d20227b0dfc23c79e0c64aa47e2eeb6aadafa6"
+content-hash = "53c470b9f8c18a228350c0d00e79a6b40c3c628580c6da6889ffd062bbf9160f"
 
 [metadata.files]
 aenum = [

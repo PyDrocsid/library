@@ -1,8 +1,8 @@
-from asyncio import Semaphore, Lock, Event, gather, create_task, get_event_loop
+from asyncio import Event, Lock, Semaphore, create_task, gather, get_event_loop
 from concurrent.futures import ThreadPoolExecutor
-
 from functools import wraps
-from typing import Callable, TypeVar, Coroutine, Awaitable, ParamSpec, Any, cast
+from typing import Any, Awaitable, Callable, ParamSpec, TypeVar, cast
+
 
 T = TypeVar("T")
 P = ParamSpec("P")

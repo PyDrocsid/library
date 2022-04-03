@@ -4,16 +4,18 @@ import sys
 from html.parser import HTMLParser
 from json import JSONDecodeError
 from pathlib import Path
+from typing import Any, cast
 from urllib.request import Request, urlopen
+
 
 EMOJI_JSON_REGEX = re.compile(r'{("\w+":\[({"names":.+"surrogates":.+},)*{"names":.+"surrogates":.+}])+}')
 
 
-def get(url):
-    return urlopen(Request(url, data=None, headers={"User-Agent": ""})).read().decode("utf8")  # noqa: S310
+def get(url: str) -> str:
+    return cast(bytes, urlopen(Request(url, data=None, headers={"User-Agent": ""})).read()).decode("utf8")  # noqa: S310
 
 
-def convert_emoji_map(categories):
+def convert_emoji_map(categories: dict[Any, Any]) -> dict[Any, Any]:
     return {
         **{
             name: emoji["surrogates"]
@@ -33,18 +35,23 @@ def convert_emoji_map(categories):
 
 
 class DiscordLoginPageParser(HTMLParser):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
-        self.urls = []
 
-    def handle_starttag(self, tag, attrs):
-        if tag == "script":
-            for name, value in attrs:
-                if name == "src":
-                    if value.startswith("/assets/") and value.endswith(".js"):
-                        self.urls.append(f"https://discord.com{value}")
+        self.urls: list[str] = []
 
-    def error(self, message):
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        if tag != "script":
+            return
+
+        for name, value in attrs:
+            if name != "src":
+                continue
+
+            if value and value.startswith("/assets/") and value.endswith(".js"):
+                self.urls.append(f"https://discord.com{value}")
+
+    def error(self, message: str) -> None:
         print(f"Error while parsing the Discord login page: {message}")
 
 
@@ -53,7 +60,7 @@ if __name__ == "__main__":
     parser = DiscordLoginPageParser()
     parser.feed(login_page)
 
-    emoji_json = None
+    emoji_json: Any | None = None
 
     for script_url in reversed(parser.urls):
         json_match = EMOJI_JSON_REGEX.search(get(script_url))

@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 from asyncio import Lock
-from typing import TypeVar, Any, Generic
+from typing import Any, Generic, TypeVar
+
 
 T = TypeVar("T")
 

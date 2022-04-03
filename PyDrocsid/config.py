@@ -4,7 +4,7 @@ from functools import partial
 from os import getenv
 from pathlib import Path
 from subprocess import getoutput  # noqa: S404
-from typing import Type, TypeVar, Any, cast
+from typing import Any, Type, TypeVar, cast
 
 import yaml
 from discord import Member, User
@@ -12,6 +12,7 @@ from discord import Member, User
 from PyDrocsid.permission import BasePermissionLevel, PermissionLevel
 from PyDrocsid.settings import RoleSettings
 from PyDrocsid.translations import Translations
+
 
 T = TypeVar("T")
 

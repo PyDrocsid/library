@@ -1,15 +1,16 @@
 from __future__ import annotations
 
 import sys
-from typing import Type, TypeVar, TYPE_CHECKING, cast
+from typing import TYPE_CHECKING, Type, TypeVar, cast
 
 from sqlalchemy import Column, String
 from sqlalchemy.orm import Mapped
 
 from PyDrocsid.async_thread import lock_deco
-from PyDrocsid.database import db, Base
+from PyDrocsid.database import Base, db
 from PyDrocsid.environment import CACHE_TTL
 from PyDrocsid.redis import redis
+
 
 if not TYPE_CHECKING:
     from aenum import NoAliasEnum as Enum

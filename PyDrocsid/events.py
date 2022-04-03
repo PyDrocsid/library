@@ -1,26 +1,26 @@
 import re
 from datetime import datetime
 from functools import partial
-from typing import Callable, Awaitable, TypeVar, Any, Iterable, cast, Coroutine, ParamSpec
+from typing import Any, Awaitable, Callable, Coroutine, Iterable, ParamSpec, TypeVar, cast
 
 from discord import (
-    Member,
-    Message,
-    Role,
-    User,
-    RawMessageDeleteEvent,
-    RawMessageUpdateEvent,
-    NotFound,
-    RawReactionActionEvent,
-    PartialEmoji,
-    TextChannel,
-    RawReactionClearEvent,
-    RawReactionClearEmojiEvent,
-    VoiceState,
+    ClientUser,
     Guild,
     Invite,
+    Member,
+    Message,
+    NotFound,
+    PartialEmoji,
+    RawMessageDeleteEvent,
+    RawMessageUpdateEvent,
+    RawReactionActionEvent,
+    RawReactionClearEmojiEvent,
+    RawReactionClearEvent,
+    Role,
+    TextChannel,
     Thread,
-    ClientUser,
+    User,
+    VoiceState,
 )
 from discord.abc import Messageable
 from discord.ext.commands.bot import Bot
@@ -30,6 +30,7 @@ from discord.ext.commands.errors import CommandError
 from PyDrocsid.command_edit import handle_delete, handle_edit
 from PyDrocsid.database import db_wrapper
 from PyDrocsid.multilock import MultiLock
+
 
 T = TypeVar("T")
 P = ParamSpec("P")
@@ -137,10 +138,13 @@ class Events:
 
     @staticmethod
     async def on_message_edit(bot: Bot, before: Message, after: Message) -> None:
-        await call_event_handlers("message_edit", before, after, identifier=after.id)
-
         if before.content != after.content:
             await handle_edit(bot, after)
+
+        await call_event_handlers("message_edit", before, after, identifier=after.id)
+
+        if before.content != after.content and not after.author.bot:
+            await bot.process_commands(after)
 
     @staticmethod
     async def on_raw_message_edit(bot: Bot, event: RawMessageUpdateEvent) -> None:
@@ -161,15 +165,20 @@ class Events:
             except NotFound:
                 return None
 
+            # delete bot responses if old message contained a command
+            await handle_edit(bot, message)
             prepared.append(message)
             return channel, message
 
         await call_event_handlers("raw_message_edit", identifier=event.message_id, prepare=prepare)
 
-        if prepared:
-            # delete bot responses if old message contained a command
-            # and execute command if new message contains one
-            await handle_edit(bot, prepared[0])
+        if not prepared:
+            return
+
+        msg = prepared.pop()
+        if not msg.author.bot:
+            # execute command if new message contains one
+            await bot.process_commands(msg)
 
     @staticmethod
     async def on_raw_reaction_add(bot: Bot, event: RawReactionActionEvent) -> None:

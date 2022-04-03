@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import os
-from typing import Iterator, Any, ItemsView
+from typing import Any, ItemsView, Iterator
 
 import yaml
 
