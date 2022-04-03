@@ -39,7 +39,6 @@ async def handle_edit(bot: Bot, message: Message):
     for reaction in message.reactions:
         if reaction.me:
             await reaction.remove(bot.user)
-    await bot.process_commands(message)
 
 
 async def handle_delete(bot: Bot, channel_id: int, message_id: int):
