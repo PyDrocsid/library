@@ -2,10 +2,11 @@ import io
 import re
 from socket import AF_INET, SHUT_RD, SOCK_STREAM, gethostbyname, socket, timeout
 from time import time
-from typing import List, Optional, Tuple
+from typing import Any, cast
 
 from discord import (
     Attachment,
+    Colour,
     Embed,
     File,
     Forbidden,
@@ -17,8 +18,9 @@ from discord import (
     Role,
     TextChannel,
 )
-from discord.abc import Messageable
-from discord.ext.commands import Bot, CommandError
+from discord.abc import Messageable, Snowflake
+from discord.ext.commands.bot import Bot
+from discord.ext.commands.errors import CommandError
 
 from PyDrocsid.config import Config
 from PyDrocsid.emojis import name_to_emoji
@@ -37,7 +39,7 @@ async def is_teamler(member: Member) -> bool:
 
 async def check_wastebasket(
     message: Message, member: Member, emoji: PartialEmoji, footer: str, permission: BasePermission
-) -> Optional[int]:
+) -> int | None:
     """
     Check if a user has reacted with :wastebasket: on an embed originally sent by the bot and if the user
     is allowed to delete or collapse this embed.
@@ -60,7 +62,7 @@ async def check_wastebasket(
             continue
 
         pattern = re.escape(footer).replace("\\{\\}", "{}").format(r".*?#\d{4}", r"(\d+)")  # noqa: P103
-        if (match := re.match("^" + pattern + "$", embed.footer.text)) is None:
+        if (match := re.match("^" + pattern + "$", cast(str, embed.footer.text))) is None:
             continue
 
         author_id = int(match.group(1))  # id of user who originally requested this embed
@@ -71,7 +73,7 @@ async def check_wastebasket(
 
         # user is not authorized -> remove reaction
         try:
-            await message.remove_reaction(emoji, member)
+            await message.remove_reaction(emoji, cast(Snowflake, member))
         except Forbidden:
             pass
         return None
@@ -79,7 +81,7 @@ async def check_wastebasket(
     return None
 
 
-def measure_latency() -> Optional[float]:
+def measure_latency() -> float | None:
     """Measure latency to discord.com."""
 
     host = gethostbyname("discord.com")
@@ -116,16 +118,20 @@ async def attachment_to_file(attachment: Attachment) -> File:
     return File(file, filename=attachment.filename, spoiler=attachment.is_spoiler())
 
 
-async def read_normal_message(bot: Bot, channel: TextChannel, author: Member) -> Tuple[str, List[File]]:
+async def read_normal_message(bot: Bot, channel: TextChannel, author: Member) -> tuple[str, list[File]]:
     """Read a message and return content and attachments."""
 
-    msg: Message = await bot.wait_for("message", check=lambda m: m.channel == channel and m.author == author)
+    def predicate(m: Message) -> bool:
+        return m.author == author and m.channel == channel
+
+    msg: Message = await bot.wait_for("message", check=predicate)
     return msg.content, [await attachment_to_file(attachment) for attachment in msg.attachments]
 
 
-async def read_complete_message(message: Message) -> Tuple[str, List[File], Optional[Embed]]:
+async def read_complete_message(message: Message) -> tuple[str, list[File], Embed | None]:
     """Extract content, attachments and embed from a given message."""
 
+    embed: Embed | None
     for embed in message.embeds:
         if embed.type == "rich":
             break
@@ -142,12 +148,12 @@ async def send_editable_log(
     name: str,
     value: str,
     *,
-    colour: Optional[int] = None,
+    colour: int | None = None,
     inline: bool = False,
     force_resend: bool = False,
     force_new_embed: bool = False,
     force_new_field: bool = False,
-    **kwargs,
+    **kwargs: Any,
 ) -> Message:
     """
     Send a log embed into a given channel which can be updated later.
@@ -164,7 +170,7 @@ async def send_editable_log(
     :param force_new_field: whether to always create a new field instead of editing the last field
     """
 
-    messages: List[Message] = await channel.history(limit=1).flatten()
+    messages: list[Message] = await channel.history(limit=1).flatten()
     if messages and messages[0].embeds and not force_new_embed:  # can extend last embed
         embed: Embed = messages[0].embeds[0]
 
@@ -182,7 +188,7 @@ async def send_editable_log(
                 force_new_embed = True
 
             if colour is not None:
-                embed.colour = colour
+                embed.colour = Colour(colour)
 
             # update embed
             if not force_new_embed:
@@ -198,7 +204,7 @@ async def send_editable_log(
     return await channel.send(embed=embed)
 
 
-def check_role_assignable(role: Role):
+def check_role_assignable(role: Role) -> None:
     """Check whether the bot could assign and unassign a given role."""
 
     guild: Guild = role.guild
@@ -216,7 +222,7 @@ def check_role_assignable(role: Role):
 
 def check_message_send_permissions(
     channel: TextChannel, check_send: bool = True, check_file: bool = False, check_embed: bool = False
-):
+) -> None:
     permissions: Permissions = channel.permissions_for(channel.guild.me)
     if not permissions.view_channel:
         raise CommandError(t.message_send_permission_error.cannot_view_channel(channel.mention))

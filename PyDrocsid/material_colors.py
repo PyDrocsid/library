@@ -1,5 +1,7 @@
+from __future__ import annotations
+
 import os
-from typing import Union
+from typing import Any, ItemsView, Iterator
 
 import yaml
 
@@ -7,35 +9,35 @@ import yaml
 class NestedInt(int):
     """Combination of integer and read only dictionary."""
 
-    _values = {}
+    _values: dict[int | str, int]
 
-    def __new__(cls, x, values):
+    def __new__(cls, x: int, values: dict[int | str, int]) -> NestedInt:
         obj = super(NestedInt, cls).__new__(cls, x)
         obj._values = values
         return obj
 
-    def __getitem__(self, key):
+    def __getitem__(self, key: int | str) -> int:
         return self._values[key]
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[int | str]:
         return self._values.__iter__()
 
-    def items(self):
+    def items(self) -> ItemsView[int | str, int]:
         return self._values.items()
 
-    def __copy__(self):
+    def __copy__(self) -> int:
         return int(self)
 
-    def __deepcopy__(self, *_):
+    def __deepcopy__(self, *_: Any) -> int:
         return int(self)
 
 
 with open(os.path.join(os.path.dirname(__file__), "material_colors.yml"), encoding="utf-8") as file:
-    _color_data: dict[str, dict[Union[int, str], int]] = yaml.safe_load(file)
+    _color_data: dict[str, dict[int | str, int]] = yaml.safe_load(file)
 
 
 def _load_color(name: str) -> NestedInt:
-    data = _color_data[name]
+    data: dict[int | str, int] = _color_data[name]
     return NestedInt(data[500], data)
 
 

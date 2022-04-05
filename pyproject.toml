@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "PyDrocsid"
-version = "2.2.0"
+version = "2.3.0dev0"
 description = "Python Discord Bot Framework based on pycord"
 authors = ["Defelo <elodef42@gmail.com>"]
 readme = "README.md"
@@ -12,7 +12,8 @@ include = ["PyDrocsid/emoji_map.json", "PyDrocsid/material_colors.yml", "PyDrocs
 
 [tool.poetry.dependencies]
 python = "^3.10"
-py-cord = {version = "^2.0.0b5", allow-prereleases = true}
+# py-cord = {version = "^2.0.0b5", allow-prereleases = true}
+py-cord = {git = "https://github.com/Defelo/pycord.git"}
 SQLAlchemy = "^1.4.32"
 PyYAML = "^6.0"
 aiohttp = "^3.8.1"
@@ -27,16 +28,17 @@ flake8 = "^4.0.1"
 black = "^22.3.0"
 isort = "^5.10.1"
 wemake-python-styleguide = "^0.16.1"
-# mypy = "^0.941"
-# SQLAlchemy = { extras = ["mypy"], version = "^1.4.32" }
+mypy = "^0.942"
+SQLAlchemy = { extras = ["mypy"], version = "^1.4.32" }
+types-PyYAML = "^6.0.5"
 
 [tool.poe.tasks]
 flake8 = "flake8 . --count --statistics --show-source"
 isort = "isort ."
 black = "black ."
 format = ["isort", "black"]
-# mypy = "mypy ."
-lint = ["format", "flake8"]
+mypy = "mypy ."
+lint = ["format", "mypy", "flake8"]
 pre-commit = ["lint"]
 
 [tool.poe.tasks.setup]
@@ -62,6 +64,8 @@ reverse_relative = true
 [tool.mypy]
 strict = true
 ignore_missing_imports = true
+no_incremental = true
+namespace_packages = true
 plugins = ["sqlalchemy.ext.mypy.plugin"]
 
 [build-system]

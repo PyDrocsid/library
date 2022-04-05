@@ -4,11 +4,15 @@ import sys
 from collections import namedtuple
 from contextvars import ContextVar
 from enum import Enum
-from typing import Union
+from typing import Awaitable, Callable, Iterable, cast
 
 from discord import Member, User
-from discord.ext.commands import CheckFailure, Context, check
+from discord.ext.commands.bot import Bot
+from discord.ext.commands.context import Context
+from discord.ext.commands.core import check
+from discord.ext.commands.errors import CheckFailure
 from sqlalchemy import Column, Integer, String
+from sqlalchemy.orm import Mapped
 
 from PyDrocsid.database import Base, db
 from PyDrocsid.environment import CACHE_TTL
@@ -23,8 +27,8 @@ permission_override: ContextVar[BasePermissionLevel] = ContextVar("permission_ov
 class PermissionModel(Base):
     __tablename__ = "permissions"
 
-    permission: Union[Column, str] = Column(String(64), primary_key=True, unique=True)
-    level: Union[Column, int] = Column(Integer)
+    permission: Mapped[str] = Column(String(64), primary_key=True, unique=True)
+    level: Mapped[int] = Column(Integer)
 
     @staticmethod
     async def create(permission: str, level: int) -> PermissionModel:
@@ -66,7 +70,7 @@ class BasePermission(Enum):
 
     @property
     def cog(self) -> str:
-        return sys.modules[self.__class__.__module__].__package__.split(".")[-1]
+        return cast(str, sys.modules[self.__class__.__module__].__package__).split(".")[-1]
 
     @property
     def fullname(self) -> str:
@@ -90,18 +94,18 @@ class BasePermission(Enum):
                 return level
         raise ValueError(f"permission level not found: {value}")
 
-    async def set(self, level: BasePermissionLevel):
+    async def set(self, level: BasePermissionLevel) -> None:
         """Configure the permission level of this permission."""
 
         await PermissionModel.set(self.fullname, level.level)
 
-    async def check_permissions(self, member: Union[Member, User]) -> bool:
+    async def check_permissions(self, member: User | Member) -> bool:
         """Return whether this permission is granted to a given member."""
 
         return await (await self.resolve()).check_permissions(member)
 
     @property
-    def check(self):
+    def check(self) -> Callable[[Context[Bot]], Awaitable[bool]]:
         """Decorator for bot commands to require this permission when invoking this command."""
 
         return check_permission_level(self)
@@ -113,26 +117,26 @@ PermissionLevel = namedtuple("PermissionLevel", ["level", "aliases", "descriptio
 class BasePermissionLevel(Enum):
     @property
     def level(self) -> int:
-        return self.value.level
+        return cast(int, self.value.level)
 
     @property
     def aliases(self) -> list[str]:
-        return self.value.aliases
+        return cast(list[str], self.value.aliases)
 
     @property
     def description(self) -> str:
-        return self.value.description
+        return cast(str, self.value.description)
 
     @property
     def guild_permissions(self) -> list[str]:
-        return self.value.guild_permissions
+        return cast(list[str], self.value.guild_permissions)
 
     @property
     def roles(self) -> list[str]:
-        return self.value.roles
+        return cast(list[str], self.value.roles)
 
     @classmethod
-    async def get_permission_level(cls, member: Union[Member, User]) -> BasePermissionLevel:
+    async def get_permission_level(cls, member: User | Member) -> BasePermissionLevel:
         """Get the permission level of a given member without (takes permission_override into account)."""
 
         if override := permission_override.get(None):
@@ -141,19 +145,19 @@ class BasePermissionLevel(Enum):
         return await cls._get_permission_level(member)
 
     @classmethod
-    async def _get_permission_level(cls, member: Union[Member, User]) -> BasePermissionLevel:
+    async def _get_permission_level(cls, member: User | Member) -> BasePermissionLevel:
         """Get the permission level of a given member."""
 
         raise NotImplementedError
 
-    async def check_permissions(self, member: Union[Member, User]) -> bool:
+    async def check_permissions(self, member: User | Member) -> bool:
         """Return whether this permission level is granted to a given member."""
 
         level: BasePermissionLevel = await self.get_permission_level(member)
         return level.level >= self.level
 
     @property
-    def check(self):
+    def check(self) -> Callable[[Context[Bot]], Awaitable[bool]]:
         """Decorator for bot commands to require this permission level when invoking this command."""
 
         return check_permission_level(self)
@@ -162,14 +166,14 @@ class BasePermissionLevel(Enum):
     def max(cls) -> BasePermissionLevel:
         """Returns the highest permission level available."""
 
-        return max(cls, key=lambda x: x.level)
+        return max(cast(Iterable[BasePermissionLevel], cls), key=lambda x: x.level)
 
 
-def check_permission_level(level: Union[BasePermission, BasePermissionLevel]):
+def check_permission_level(level: BasePermission | BasePermissionLevel) -> Callable[[Context[Bot]], Awaitable[bool]]:
     """Discord commmand check to require a given level when invoking the command."""
 
-    async def inner(ctx: Context):
-        member: Union[Member, User] = ctx.author
+    async def inner(ctx: Context[Bot]) -> bool:
+        member: User | Member = ctx.author
         if not isinstance(member, Member):
             member = ctx.bot.guilds[0].get_member(ctx.author.id) or member
         if not await level.check_permissions(member):
@@ -177,6 +181,6 @@ def check_permission_level(level: Union[BasePermission, BasePermissionLevel]):
 
         return True
 
-    inner.level = level
+    inner.level = level  # type: ignore
 
-    return check(inner)
+    return cast(Callable[[Context[Bot]], Awaitable[bool]], check(inner))
