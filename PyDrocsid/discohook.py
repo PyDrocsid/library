@@ -5,8 +5,8 @@ import hashlib
 import json
 from typing import Any, NamedTuple, cast
 
-from aiohttp import ClientSession
 from discord import Embed, Message
+from httpx import AsyncClient
 
 from PyDrocsid.redis import redis
 
@@ -38,11 +38,10 @@ async def create_discohook_link(*messages: Message | MessageContent) -> str:
         return cast(str, out)
 
     url = "https://discohook.org/?data=" + base64.urlsafe_b64encode(data.encode()).decode().rstrip("=")
-    async with ClientSession() as session, session.post(
-        "https://share.discohook.app/create", json={"url": url}
-    ) as response:
-        link: str | None = (await response.json()).get("url")
-        if not response.ok or not link:
+    client: AsyncClient
+    async with AsyncClient() as client:
+        response = await client.post("https://share.discohook.app/create", json={"url": url})
+        if response.is_error or not isinstance(link := response.json().get("url"), str):
             raise DiscoHookError("Failed to create link")
 
     await redis.setex(key, 60 * 60 * 24 * 7, link)
