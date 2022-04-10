@@ -48,9 +48,9 @@ class MessageContent(NamedTuple):
     content: str
     embeds: list[Embed]
 
-    @staticmethod
-    def from_message(message: Message) -> MessageContent:
-        return MessageContent(content=message.content or "", embeds=message.embeds)
+    @classmethod
+    def from_message(cls, message: Message) -> MessageContent:
+        return cls(content=message.content or "", embeds=message.embeds)
 
     def to_dict(self) -> dict[str, Any]:
         return {"data": {"content": self.content, "embeds": [e.to_dict() for e in self.embeds]}}
@@ -76,7 +76,7 @@ async def create_discohook_link(*messages: Message | MessageContent) -> str:
     if out := await redis.get(key := f"discohook:link:{hashlib.sha256(data.encode()).hexdigest()[:16]}"):
         return cast(str, out)
 
-    url = "https://discohook.org/?data=" + base64.urlsafe_b64encode(data.encode()).decode().rstrip("=")
+    url = f"https://discohook.org/?data={base64.urlsafe_b64encode(data.encode()).decode().rstrip('=')}"
     client: AsyncClient
     async with AsyncClient() as client:
         response = await client.post("https://share.discohook.app/create", json={"url": url})
