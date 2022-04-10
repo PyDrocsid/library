@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "PyDrocsid"
-version = "2.3.0dev0"
+version = "2.3.0dev1"
 description = "Python Discord Bot Framework based on pycord"
 authors = ["Defelo <elodef42@gmail.com>"]
 readme = "README.md"
