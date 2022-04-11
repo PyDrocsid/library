@@ -28,7 +28,7 @@ def _load_embed(data: dict[str, Any]) -> Embed:
     if isinstance(timestamp := data.get("timestamp"), str):
         data["timestamp"] = timestamp.rstrip("Z")
 
-    color = data.pop("color")
+    color = data.pop("color", None)
     if not Embed.from_dict(data):
         # empty embeds are not allowed
         data["description"] = "** **"
