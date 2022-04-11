@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import base64
+import binascii
 import hashlib
 import json
 import re
@@ -104,7 +105,10 @@ async def _load_discohook_data(link: str) -> Any:
     if not (match := re.match(r"^https://discohook.org/\?data=([a-zA-Z\d\-_]+)$", url)):
         raise DiscoHookError("Invalid link")
 
-    data = json.loads(base64.urlsafe_b64decode(match[1] + "=="))
+    try:
+        data = json.loads(base64.urlsafe_b64decode(match[1] + "=="))
+    except (binascii.Error, UnicodeDecodeError, json.JSONDecodeError):
+        raise DiscoHookError("Invalid link")
 
     await redis.setex(key, TTL, json_data := json.dumps(data))
     await redis.setex(f"discohook:link:{hashlib.sha256(json_data.encode()).hexdigest()[:16]}", TTL, url)
