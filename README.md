@@ -1,5 +1,7 @@
+<!-- markdownlint-disable-next-line MD033 -->
 <p>
 
+  <!-- markdownlint-disable-next-line MD041 -->
   [![CI](https://github.com/PyDrocsid/library/actions/workflows/ci.yml/badge.svg)](https://github.com/PyDrocsid/library/actions/workflows/ci.yml)
   [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
   [![Maintainability](https://api.codeclimate.com/v1/badges/cf9f606da13c20077022/maintainability)](https://codeclimate.com/github/PyDrocsid/library/maintainability)
@@ -12,4 +14,5 @@
 
 
 # PyDrocsid
+
 Python Discord Bot Framework based on [Pycord](https://pycord.dev/)
