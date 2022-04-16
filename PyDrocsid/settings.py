@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, Type, TypeVar, cast
 from sqlalchemy import Column, String
 from sqlalchemy.orm import Mapped
 
-from PyDrocsid.async_thread import lock_deco
+from PyDrocsid.async_utils import lock_deco
 from PyDrocsid.database import Base, db
 from PyDrocsid.environment import CACHE_TTL
 from PyDrocsid.redis import redis
