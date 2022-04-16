@@ -1,5 +1,6 @@
 [flake8]
 max-line-length = 120
-ignore = C812,C813,C815,C816,Q000,RST210,RST213,RST215,RST304,W503
+docstring_style=google
+ignore = C812,C813,C815,C816,D202,D205,D400,Q000,RST210,RST213,RST215,RST304,W503
 extend-ignore = D,WPS
 extend-exclude = .venv
