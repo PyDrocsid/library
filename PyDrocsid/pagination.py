@@ -82,8 +82,7 @@ class Paginator(ui.View):
 async def create_pagination(
     channel: Message | Messageable | InteractionResponse, user: User | Member | None, embeds: list[Embed], **kwargs: Any
 ) -> Message | None:
-    """
-    Create embed pagination on a message.
+    """Create embed pagination on a message.
 
     :param channel: the channel to send the message to
     :param user: the user who should be able to control the pagination

@@ -18,7 +18,10 @@ T = TypeVar("T")
 
 
 class Contributor:
-    """Collection of all contributors. Each contributor is a (discord_id, github_id) tuple."""
+    """Collection of all contributors.
+
+    Each contributor is a (discord_id, github_id) tuple.
+    """
 
     Defelo = (370876111992913922, "MDQ6VXNlcjQxNzQ3NjA1")
     TNT2k = (212866839083089921, "MDQ6VXNlcjQ0MzQ5NzUw")
@@ -29,7 +32,7 @@ class Contributor:
 
 
 class Config:
-    """Global bot configuration"""
+    """Global bot configuration."""
 
     # bot information
     NAME: str

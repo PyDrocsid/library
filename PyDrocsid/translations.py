@@ -13,8 +13,7 @@ logger = get_logger(__name__)
 
 
 def merge(base: dict[Any, Any], src: dict[Any, Any]) -> None:
-    """
-    Merge two dictionaries recursively by copying/merging the key-value pairs from src into base.
+    """Merge two dictionaries recursively by copying/merging the key-value pairs from src into base.
 
     :param base: the base dictionary
     :param src: the source dictionary to read from
@@ -29,13 +28,13 @@ def merge(base: dict[Any, Any], src: dict[Any, Any]) -> None:
 
 
 class _FormatString(str):
-    """String which can be called directly for formatting"""
+    """String which can be called directly for formatting."""
 
     __call__ = str.format
 
 
 class _PluralDict(dict[str, Any]):
-    """Dictionary for pluralization containing multiple _FormatStrings"""
+    """Dictionary for pluralization containing multiple _FormatStrings."""
 
     _fallback: Any
 
@@ -68,7 +67,7 @@ class _PluralDict(dict[str, Any]):
         return self.__getattr__(item)
 
     def __getattr__(self, item: str) -> Any:
-        """Return a nested item and wrap it in a _FormatString or _PluralDict"""
+        """Return a nested item and wrap it in a _FormatString or _PluralDict."""
 
         value = self[item] if item in self else self._fallback[item]
 
@@ -85,7 +84,7 @@ Source = namedtuple("Source", ["priority", "path"])
 
 
 class _Namespace:
-    """Translation namespace containing translations for main and fallback language"""
+    """Translation namespace containing translations for main and fallback language."""
 
     def __init__(self) -> None:
         # list of source directories for translation files
@@ -95,8 +94,7 @@ class _Namespace:
         self._translations: dict[str, dict[str, Any]] = {}
 
     def _add_source(self, prio: int, source: Path) -> None:
-        """
-        Add a new translation source.
+        """Add a new translation source.
 
         :param prio: priority of translation source (higher priority overrides lower priority)
         :param source: path to the directory containing the translation files
@@ -133,7 +131,7 @@ class _Namespace:
         return translations[key]
 
     def __getattr__(self, item: str) -> Any:
-        """Return an item and wrap it in a _FormatString or _PluralDict"""
+        """Return an item and wrap it in a _FormatString or _PluralDict."""
 
         value = self._get_translation(item)
 
@@ -147,7 +145,7 @@ class _Namespace:
 
 
 class Translations:
-    """Container of multiple translation namespaces"""
+    """Container of multiple translation namespaces."""
 
     LANGUAGE: str
     FALLBACK: str = "en"
@@ -168,7 +166,7 @@ class Translations:
         self._namespaces[name]._add_source(prio, path)
 
     def __getattr__(self, item: str) -> Any:
-        """Return a translation namespace"""
+        """Return a translation namespace."""
 
         return self._namespaces[item]
 

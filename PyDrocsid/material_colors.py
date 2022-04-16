@@ -42,7 +42,7 @@ def _load_color(name: str) -> NestedInt:
 
 
 class MaterialColors:
-    """List of all material colors"""
+    """List of all material colors."""
 
     red = _load_color("red")
     pink = _load_color("pink")

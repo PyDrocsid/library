@@ -48,8 +48,8 @@ class Cog(DiscordCog):
 
     @staticmethod
     def prepare() -> bool:
-        """
-        Prepare a cog and return whether the cog can be added to the bot.
+        """Prepare a cog and return whether the cog can be added to the bot.
+
         If this method returns False, the cog will be disabled.
         """
 
@@ -137,8 +137,7 @@ class Cog(DiscordCog):
 
 
 def check_dependencies(cogs: list[Cog]) -> set[Type[Cog]]:
-    """
-    Make sure all cog dependencies are met by recursively disabling cogs with unsatisfied dependencies.
+    """Make sure all cog dependencies are met by recursively disabling cogs with unsatisfied dependencies.
 
     :param cogs: list of available cogs
     :return: set of disabled cog classes

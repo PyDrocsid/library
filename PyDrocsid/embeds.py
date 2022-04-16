@@ -16,10 +16,9 @@ EMPTY_MARKDOWN = "_ _"
 
 
 def split_lines(text: str, max_size: int, *, first_max_size: int | None = None) -> list[str]:
-    """
-    Split a string into a list of substrings such that each substring contains no more than max_size characters.
-    To achieve this, this function first tries to split the string at line breaks. Substrings which are still too
-    long are split at spaces and (only if necessary) between any two characters.
+    """Split a string into a list of substrings such that each substring contains no more than max_size characters. To
+    achieve this, this function first tries to split the string at line breaks. Substrings which are still too long are
+    split at spaces and (only if necessary) between any two characters.
 
     :param text: the string
     :param max_size: maximum number of characters allowed in each substring
@@ -94,8 +93,7 @@ async def send_long_embed(
     max_fields: int = 25,
     **kwargs: Any,
 ) -> list[Message]:
-    """
-    Split and send a long embed in multiple messages.
+    """Split and send a long embed in multiple messages.
 
     :param channel: the channel into which the messages should be sent
     :param embed: the embed to send

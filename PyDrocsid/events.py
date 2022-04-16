@@ -46,8 +46,7 @@ ReactionEventData = tuple[Message, PartialEmoji, User | Member]
 
 
 async def extract_from_raw_reaction_event(bot: Bot, event: RawReactionActionEvent) -> ReactionEventData | None:
-    """
-    Extract message, emoji and user from any RawReactionActionEvent.
+    """Extract message, emoji and user from any RawReactionActionEvent.
 
     :param bot: the bot instance
     :param event: the RawReactionActionEvent
@@ -78,11 +77,8 @@ async def extract_from_raw_reaction_event(bot: Bot, event: RawReactionActionEven
 
 
 class Events:
-    """
-    Collection of all registrable event handlers
-    For a more detailed documentation on these events, please refer to
-    https://discordpy.readthedocs.io/en/latest/ext/commands/api.html#event-reference
-    """
+    """Collection of all registrable event handlers For a more detailed documentation on these events, please refer to
+    https://discordpy.readthedocs.io/en/latest/ext/commands/api.html#event-reference."""
 
     @staticmethod
     async def on_ready(_: Bot) -> None:
@@ -154,7 +150,7 @@ class Events:
         prepared = []
 
         async def prepare() -> tuple[Messageable, Message] | None:
-            """Extract channel and message from event"""
+            """Extract channel and message from event."""
 
             channel = cast(Messageable | None, bot.get_channel(event.channel_id))
             if channel is None:
@@ -302,8 +298,7 @@ def listener(func: AsyncFunc) -> AsyncFunc:
 async def call_event_handlers(
     event: str, *args: Any, identifier: Any = None, prepare: Callable[[], Awaitable[Iterable[Any] | None]] | None = None
 ) -> bool:
-    """
-    Call handlers for a given event.
+    """Call handlers for a given event.
 
     :param event: the name of the event
     :param args: positional arguments to pass to the event handler
@@ -338,7 +333,7 @@ async def call_event_handlers(
 
 
 def register_events(bot: Bot) -> None:
-    """Register all events defined in Events class"""
+    """Register all events defined in Events class."""
 
     for e in dir(Events):
         # TODO use ParamSpec once mypy supports it

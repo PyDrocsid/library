@@ -22,7 +22,7 @@ class _LockContext(Generic[T]):
 
 
 class MultiLock(Generic[T]):
-    """Container for multiple async locks which automatically deletes unused locks"""
+    """Container for multiple async locks which automatically deletes unused locks."""
 
     def __init__(self) -> None:
         self.locks: dict[T, Lock] = {}

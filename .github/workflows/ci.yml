@@ -37,8 +37,8 @@ jobs:
           pip install poetry poethepoet
           poetry install -n --no-root
 
-      - name: Check code formatting with black and isort
-        run: poe black --diff --check && poe isort --diff --check
+      - name: Check code formatting with black, docformatter and isort
+        run: poe black --diff --check && poe docformatter --check && poe isort --diff --check
 
   mypy:
     name: mypy

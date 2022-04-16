@@ -84,8 +84,7 @@ def get_optional_permissions(command: Command[Cog, Any, Any]) -> list[BasePermis
 
 
 def make_error(message: str, user: User | Member | None = None) -> Embed:
-    """
-    Create an error embed with an optional author.
+    """Create an error embed with an optional author.
 
     :param message: the error message
     :param user: an optional user
@@ -112,8 +111,7 @@ async def can_run_command(command: Command[Cog, Any, Any], ctx: Context[Bot]) ->
 async def reply(
     ctx: Message | Messageable | InteractionResponse, *args: Any, no_reply: bool = False, **kwargs: Any
 ) -> Message | None:
-    """
-    Reply to a message and link response to this message.
+    """Reply to a message and link response to this message.
 
     :param ctx: the context/message/messageable to reply to
     :param args: positional arguments to pass to ctx.send/ctx.reply
@@ -149,8 +147,7 @@ async def reply(
 
 
 async def add_reactions(ctx: Context[Any] | Message, *emojis: str) -> None:
-    """
-    Add reactions to a given message.
+    """Add reactions to a given message.
 
     :param ctx: the message or context
     :param emojis: emoji names to react with

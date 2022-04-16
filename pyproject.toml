@@ -31,15 +31,25 @@ wemake-python-styleguide = "^0.16.1"
 mypy = "^0.942"
 SQLAlchemy = { extras = ["mypy"], version = "^1.4.32" }
 types-PyYAML = "^6.0.5"
+docformatter = "^1.4"
 
 [tool.poe.tasks]
 flake8 = "flake8 . --count --statistics --show-source"
 isort = "isort ."
 black = "black ."
-format = ["isort", "black"]
+format = ["isort", "docformatter", "black"]
 mypy = "mypy ."
 lint = ["format", "mypy", "flake8"]
 pre-commit = ["lint"]
+
+[tool.poe.tasks.docformatter]
+shell = """
+tmp=$(mktemp)
+docformatter -r$([[ "$check" = True ]] || echo i) --wrap-summaries 120 --wrap-descriptions 120 . | tee $tmp
+! ([[ "$check" = True ]] && [[ -s $tmp ]])
+"""
+interpreter = "bash"
+args = { check = { options = ["--check"], type = "boolean" } }
 
 [tool.poe.tasks.setup]
 shell = """

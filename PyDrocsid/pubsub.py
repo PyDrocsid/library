@@ -41,15 +41,15 @@ class Subscription(Generic[PubSubArgs, PubSubResult]):
 
 
 class PubSubChannel(Generic[PubSubArgs, PubSubResult]):
-    """Publish-Subscribe channel for inter cog communication"""
+    """Publish-Subscribe channel for inter cog communication."""
 
     def __init__(self) -> None:
         self._subscriptions: list[Callable[PubSubArgs, Awaitable[PubSubResult | None]]] = []
 
     async def publish(self, *args: PubSubArgs.args, **kwargs: PubSubArgs.kwargs) -> list[PubSubResult]:
-        """
-        Publish a message to this channel. This will call all subscriptions and return
-        a list of their return values (if they don't return None).
+        """Publish a message to this channel.
+
+        This will call all subscriptions and return a list of their return values (if they don't return None).
         """
 
         result = await asyncio.gather(*[sub(*args, **kwargs) for sub in self._subscriptions])
@@ -60,8 +60,8 @@ class PubSubChannel(Generic[PubSubArgs, PubSubResult]):
 
     @property
     def subscribe(self) -> Type[Subscription[PubSubArgs, PubSubResult]]:
-        """
-        Decorator for async functions to register them as subscriptions of this channel.
+        """Decorator for async functions to register them as subscriptions of this channel.
+
         Can only be used on methods of Cog classes.
         """
 

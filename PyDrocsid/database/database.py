@@ -151,8 +151,7 @@ class DB:
             await conn.run_sync(partial(Base.metadata.create_all, tables=tables))
 
     async def add(self, obj: T) -> T:
-        """
-        Add a new row to the database
+        """Add a new row to the database.
 
         :param obj: the row to insert
         :return: the same row
@@ -162,8 +161,7 @@ class DB:
         return obj
 
     async def delete(self, obj: T) -> T:
-        """
-        Remove a row from the database
+        """Remove a row from the database.
 
         :param obj: the row to remove
         :return: the same row
@@ -214,7 +212,7 @@ class DB:
             await self.session.commit()
 
     async def close(self) -> None:
-        """Close the current session"""
+        """Close the current session."""
 
         if self._session.get():
             await self.session.close()
@@ -230,7 +228,7 @@ class DB:
 
     @property
     def session(self) -> AsyncSession:
-        """Get the session object for the current task"""
+        """Get the session object for the current task."""
 
         return cast(AsyncSession, self._session.get())
 
@@ -240,8 +238,7 @@ class DB:
 
 
 def get_database() -> DB:
-    """
-    Create a database connection object using the environment variables
+    """Create a database connection object using the environment variables.
 
     :return: The DB object
     """
