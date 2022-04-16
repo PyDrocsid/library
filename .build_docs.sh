@@ -1,7 +1,7 @@
 #!/bin/bash
 
 repo=$(mktemp -d)
-git clone --recursive https://github.com/PyDrocsid/documentation.git $repo
+git clone --recursive -b docs https://github.com/PyDrocsid/documentation.git $repo
 rm -rf $repo/library
 mkdir $repo/library
 cp -r * $repo/library/
