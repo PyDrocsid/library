@@ -40,9 +40,8 @@ async def is_teamler(member: Member) -> bool:
 async def check_wastebasket(
     message: Message, member: Member, emoji: PartialEmoji, footer: str, permission: BasePermission
 ) -> int | None:
-    """
-    Check if a user has reacted with :wastebasket: on an embed originally sent by the bot and if the user
-    is allowed to delete or collapse this embed.
+    """Check if a user has reacted with :wastebasket: on an embed originally sent by the bot and if the user is allowed
+    to delete or collapse this embed.
 
     :param message: the message the user has reacted on
     :param member: the user who added the reaction
@@ -111,7 +110,7 @@ def calculate_edit_distance(a: str, b: str) -> int:
 
 
 async def attachment_to_file(attachment: Attachment) -> File:
-    """Convert an attachment to a file"""
+    """Convert an attachment to a file."""
 
     file = io.BytesIO()
     await attachment.save(file)
@@ -155,8 +154,7 @@ async def send_editable_log(
     force_new_field: bool = False,
     **kwargs: Any,
 ) -> Message:
-    """
-    Send a log embed into a given channel which can be updated later.
+    """Send a log embed into a given channel which can be updated later.
 
     :param channel: the channel into which the messages should be sent
     :param title: the embed title
