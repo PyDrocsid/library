@@ -111,7 +111,7 @@ async def can_run_command(command: Command[Cog, Any, Any], ctx: Context[Bot]) ->
 
 async def reply(
     ctx: Message | Messageable | InteractionResponse, *args: Any, no_reply: bool = False, **kwargs: Any
-) -> Message | None:
+) -> Message:
     """
     Reply to a message and link response to this message.
 
@@ -123,8 +123,8 @@ async def reply(
     """
 
     if isinstance(ctx, InteractionResponse):
-        await ctx.send_message(*args, **kwargs, ephemeral=True)
-        return None
+        interaction = await ctx.send_message(*args, **kwargs, ephemeral=True)
+        return await interaction.original_message()
 
     if isinstance(channel := ctx.channel if isinstance(ctx, (Message, Context)) else ctx, TextChannel):
         try:

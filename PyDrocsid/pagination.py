@@ -19,7 +19,6 @@ class PaginatorButton(ui.Button[ui.View]):
         self.page = page
 
     async def callback(self, interaction: Interaction) -> None:
-        self.paginator.message = interaction.response
         await self.paginator.goto_page(self.page)
 
 
@@ -31,7 +30,7 @@ class Paginator(ui.View):
         self.pages = pages
         self.page = page
         self.user = user
-        self.message: Message | InteractionResponse | None = None
+        self.message: Message | None = None
         self.buttons: list[PaginatorButton] = []
 
     def _update_buttons(self) -> None:
@@ -45,24 +44,26 @@ class Paginator(ui.View):
 
         self.clear_items()
         for button in self.buttons:
+            if self.is_finished():
+                button.disabled = True
             self.add_item(button)
 
-    async def reply(self, channel: Message | Messageable | InteractionResponse, **kwargs: Any) -> Message | None:
+    async def reply(self, channel: Message | Messageable | InteractionResponse, **kwargs: Any) -> Message:
         self._update_buttons()
-        msg = await reply(channel, embed=self.pages[self.page], view=self, **kwargs)
-        self.message = channel if isinstance(channel, InteractionResponse) else msg
-        return msg
+        self.message = await reply(channel, embed=self.pages[self.page], view=self, **kwargs)
+        return self.message
 
     async def _update(self) -> None:
         self.page = min(max(self.page, 0), len(self.pages) - 1)
         self._update_buttons()
         if isinstance(self.message, Message):
             await self.message.edit(embed=self.pages[self.page], view=self)
-        elif isinstance(self.message, InteractionResponse):
-            await self.message.edit_message(embed=self.pages[self.page], view=self)
 
     async def goto_page(self, page: int) -> None:
         self.page = page
+        await self._update()
+
+    async def on_timeout(self) -> None:
         await self._update()
 
     async def interaction_check(self, interaction: Interaction) -> bool:
@@ -81,7 +82,7 @@ class Paginator(ui.View):
 
 async def create_pagination(
     channel: Message | Messageable | InteractionResponse, user: User | Member | None, embeds: list[Embed], **kwargs: Any
-) -> Message | None:
+) -> Message:
     """
     Create embed pagination on a message.
 
