@@ -18,6 +18,7 @@ jobs:
         uses: actions/checkout@v2.4.0
         with:
           submodules: false
+          token: ${{ secrets.TOKEN }}
 
       - name: Set up Python ${{ env.PYTHON_VERSION }}
         uses: actions/setup-python@v2.3.1
@@ -35,13 +36,23 @@ jobs:
               echo "::set-output name=map_changed::true"
           fi
 
-      - name: Create a pull request with the changed map
-        uses: peter-evans/create-pull-request@v4
-        if: ${{ steps.run_update_script.outputs.map_changed == 'true' }}
+      - name: Import GPG Key
+        uses: crazy-max/ghaction-import-gpg@v4
         with:
-          token: ${{ secrets.TOKEN }}
-          commit-message: Updated the emoji map
-          branch: update-emojis
-          title: Updated the emoji map
-          body: ''
-          author: 'GitHub <noreply@github.com>'
+          gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY }}
+          git_user_signingkey: true
+          git_commit_gpgsign: true
+
+      - name: Create a pull request with the changed map
+        if: ${{ steps.run_update_script.outputs.map_changed == 'true' }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.TOKEN }}
+        run: |
+          set -ex
+
+          git checkout -b update-emojis
+          git add PyDrocsid/emoji_map.json
+          git commit -m "Updated emoji map"
+          git push origin update-emojis || git push -f origin update-emojis
+
+          gh pr create --title "Updated the emoji map" --body "" --head update-emojis || true

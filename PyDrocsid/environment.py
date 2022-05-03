@@ -1,4 +1,4 @@
-from os import environ, getenv
+from os import getenv
 
 
 def get_bool(key: str, default: bool) -> bool:
@@ -7,7 +7,7 @@ def get_bool(key: str, default: bool) -> bool:
     return getenv(key, str(default)).lower() in ("true", "t", "yes", "y", "1")
 
 
-TOKEN: str = environ["TOKEN"]  # bot token
+TOKEN: str | None = getenv("TOKEN")  # bot token
 LOG_LEVEL: str = getenv("LOG_LEVEL", "INFO")
 
 # database configuration
@@ -30,7 +30,7 @@ OWNER_ID: int = int(getenv("OWNER_ID", 0))
 DISABLED_COGS: set[str] = set(map(str.lower, getenv("DISABLED_COGS", "").split(",")))
 
 # redis configuration
-REDIS_HOST: str = environ["REDIS_HOST"]
+REDIS_HOST: str = getenv("REDIS_HOST", "localhost")
 REDIS_PORT: int = int(getenv("REDIS_PORT", "6379"))
 REDIS_DB: int = int(getenv("REDIS_DB", "0"))
 
