@@ -1,7 +1,7 @@
 from asyncio import Event, Lock, Semaphore, create_task, gather, get_event_loop
 from concurrent.futures import ThreadPoolExecutor
 from functools import wraps
-from typing import Any, Awaitable, Callable, ParamSpec, TypeVar, cast
+from typing import Any, Awaitable, Callable, Coroutine, ParamSpec, TypeVar, cast
 
 
 T = TypeVar("T")
@@ -47,7 +47,7 @@ def lock_deco(func: Callable[..., Awaitable[T]]) -> Callable[..., Awaitable[T]]:
     return inner
 
 
-def run_as_task(func: Callable[..., Awaitable[T]]) -> Callable[..., Awaitable[None]]:
+def run_as_task(func: Callable[..., Coroutine[Any, Any, None]]) -> Callable[..., Awaitable[None]]:
     """
     Decorator for async functions.
     Instead of calling the decorated function directly, this will create a task for it and return immediately.
