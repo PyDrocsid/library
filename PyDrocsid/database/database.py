@@ -35,6 +35,9 @@ T = TypeVar("T")
 
 logger = get_logger(__name__)
 
+_session: ContextVar[AsyncSession | None] = ContextVar("session", default=None)
+_close_event: ContextVar[Event | None] = ContextVar("close_event", default=None)
+
 
 def select(entity: Any, *args: Column[Any]) -> Select:
     """Shortcut for :meth:`sqlalchemy.future.select`"""
@@ -137,9 +140,6 @@ class DB:
             echo=echo,
         )
 
-        self._session: ContextVar[AsyncSession | None] = ContextVar("session", default=None)
-        self._close_event: ContextVar[Event | None] = ContextVar("close_event", default=None)
-
     async def create_tables(self) -> None:
         """Create all tables defined in enabled cog packages."""
 
@@ -210,32 +210,32 @@ class DB:
     async def commit(self) -> None:
         """Shortcut for :meth:`sqlalchemy.ext.asyncio.AsyncSession.commit`"""
 
-        if self._session.get():
+        if _session.get():
             await self.session.commit()
 
     async def close(self) -> None:
         """Close the current session"""
 
-        if self._session.get():
+        if _session.get():
             await self.session.close()
-            if close_event := self._close_event.get():
+            if close_event := _close_event.get():
                 close_event.set()
 
     def create_session(self) -> AsyncSession:
         """Create a new async session and store it in the context variable."""
 
-        self._session.set(session := AsyncSession(self.engine, expire_on_commit=False))
-        self._close_event.set(Event())
+        _session.set(session := AsyncSession(self.engine, expire_on_commit=False))
+        _close_event.set(Event())
         return session
 
     @property
     def session(self) -> AsyncSession:
         """Get the session object for the current task"""
 
-        return cast(AsyncSession, self._session.get())
+        return cast(AsyncSession, _session.get())
 
     async def wait_for_close_event(self) -> None:
-        if close_event := self._close_event.get():
+        if close_event := _close_event.get():
             await close_event.wait()
 
 
