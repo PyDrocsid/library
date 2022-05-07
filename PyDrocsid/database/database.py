@@ -2,7 +2,7 @@ from asyncio import Event
 from contextvars import ContextVar
 from datetime import datetime, timezone
 from functools import partial
-from typing import Any, AsyncIterator, Type, TypeVar, cast
+from typing import Any, AsyncIterator, NamedTuple, Type, TypeVar, cast
 
 from sqlalchemy import Column, DateTime, Table, TypeDecorator
 from sqlalchemy.engine import URL
@@ -35,8 +35,13 @@ T = TypeVar("T")
 
 logger = get_logger(__name__)
 
-_session: ContextVar[AsyncSession | None] = ContextVar("session", default=None)
-_close_event: ContextVar[Event | None] = ContextVar("close_event", default=None)
+
+class Session(NamedTuple):
+    session: AsyncSession
+    close_event: Event
+
+
+_sessions: ContextVar[list[Session]] = ContextVar("sessions", default=[])
 
 
 def select(entity: Any, *args: Column[Any]) -> Select:
@@ -210,33 +215,37 @@ class DB:
     async def commit(self) -> None:
         """Shortcut for :meth:`sqlalchemy.ext.asyncio.AsyncSession.commit`"""
 
-        if _session.get():
-            await self.session.commit()
+        if sessions := _sessions.get():
+            await sessions[-1].session.commit()
 
     async def close(self) -> None:
         """Close the current session"""
 
-        if _session.get():
-            await self.session.close()
-            if close_event := _close_event.get():
-                close_event.set()
+        if sessions := _sessions.get():
+            session, close_event = sessions.pop()
+            _sessions.set(sessions)
+            await session.close()
+            close_event.set()
 
     def create_session(self) -> AsyncSession:
         """Create a new async session and store it in the context variable."""
 
-        _session.set(session := AsyncSession(self.engine, expire_on_commit=False))
-        _close_event.set(Event())
-        return session
+        session = Session(AsyncSession(self.engine, expire_on_commit=False), Event())
+        _sessions.set(_sessions.get() + [session])
+        return session.session
 
     @property
     def session(self) -> AsyncSession:
         """Get the session object for the current task"""
 
-        return cast(AsyncSession, _session.get())
+        if not (sessions := _sessions.get()):
+            raise RuntimeError("No session available")
+
+        return sessions[-1].session
 
     async def wait_for_close_event(self) -> None:
-        if close_event := _close_event.get():
-            await close_event.wait()
+        if sessions := _sessions.get():
+            await sessions[-1].close_event.wait()
 
 
 def get_database() -> DB:
