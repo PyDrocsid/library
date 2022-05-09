@@ -6,7 +6,7 @@ from sentry_sdk.integrations.aiohttp import AioHttpIntegration
 from sentry_sdk.integrations.logging import LoggingIntegration
 from sentry_sdk.integrations.sqlalchemy import SqlalchemyIntegration
 
-from PyDrocsid.environment import LOG_LEVEL
+from PyDrocsid.environment import LOG_LEVEL, PYCORD_LOG_LEVEL
 
 
 def setup_sentry(dsn: str, name: str, version: str) -> None:
@@ -39,3 +39,6 @@ def get_logger(name: str) -> logging.Logger:
     logger.setLevel(LOG_LEVEL.upper())
 
     return logger
+
+
+get_logger("discord").setLevel(PYCORD_LOG_LEVEL.upper())

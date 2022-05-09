@@ -9,6 +9,7 @@ def get_bool(key: str, default: bool) -> bool:
 
 TOKEN: str | None = getenv("TOKEN")  # bot token
 LOG_LEVEL: str = getenv("LOG_LEVEL", "INFO")
+PYCORD_LOG_LEVEL: str = getenv("PYCORD_LOG_LEVEL", "ERROR")
 
 # database configuration
 DB_DRIVER: str = getenv("DB_DRIVER", "mysql+aiomysql")
