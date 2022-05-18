@@ -597,7 +597,7 @@ test = ["appdirs (==1.4.4)", "pytest-cov (>=2.7)", "pytest-mock (>=3.6)", "pytes
 
 [[package]]
 name = "py-cord"
-version = "2.0.0b7"
+version = "2.0.0rc1"
 description = "A Python wrapper for the Discord API"
 category = "main"
 optional = false
@@ -1405,8 +1405,8 @@ platformdirs = [
     {file = "platformdirs-2.5.2.tar.gz", hash = "sha256:58c8abb07dcb441e6ee4b11d8df0ac856038f944ab98b7be6b27b2a3c7feef19"},
 ]
 py-cord = [
-    {file = "py-cord-2.0.0b7.tar.gz", hash = "sha256:681cc1589eaa90f39a812e8dd94115eff305103ce974f4ca4a2062cea027b47f"},
-    {file = "py_cord-2.0.0b7-py3-none-any.whl", hash = "sha256:4a38ea3a535ab301e53edb7ac8244a793ab174577b5360fbddf9670c9a5f620a"},
+    {file = "py-cord-2.0.0rc1.tar.gz", hash = "sha256:66ab1fc91f6cd00318cf230677c5d4860fe6532a06cb424f06e22132a912f975"},
+    {file = "py_cord-2.0.0rc1-py3-none-any.whl", hash = "sha256:ec3484440d9cde21bd4ae605a69004f932e878b9bed0ec2e1286191a4d3b6c0d"},
 ]
 pycodestyle = [
     {file = "pycodestyle-2.8.0-py2.py3-none-any.whl", hash = "sha256:720f8b39dde8b293825e7ff02c475f3077124006db4f440dcbc9a20b76548a20"},
