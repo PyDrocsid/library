@@ -1,8 +1,8 @@
 import asyncio
 from typing import cast
 
-from discord import Forbidden, HTTPException, Message, NotFound, TextChannel, Thread
-from discord.abc import Snowflake
+from discord import DMChannel, Forbidden, HTTPException, Message, NotFound, TextChannel, Thread
+from discord.abc import GuildChannel, PrivateChannel, Snowflake
 from discord.ext.commands.bot import Bot
 from discord.ext.commands.context import Context
 
@@ -43,6 +43,16 @@ async def handle_edit(bot: Bot, message: Message) -> None:
             await reaction.remove(cast(Snowflake, bot.user))
 
 
+async def _get_channel(bot: Bot, channel_id: int) -> GuildChannel | PrivateChannel | Thread | None:
+    if channel := bot.get_channel(channel_id):
+        return channel
+
+    try:
+        return await bot.fetch_channel(channel_id)
+    except (HTTPException, NotFound, Forbidden):
+        return None
+
+
 async def handle_delete(bot: Bot, channel_id: int, message_id: int) -> None:
     """Delete linked bot responses of a command message."""
 
@@ -50,7 +60,7 @@ async def handle_delete(bot: Bot, channel_id: int, message_id: int) -> None:
     await redis.delete(key)
 
     async def delete_message(chn_id: int, msg_id: int) -> None:
-        if not isinstance(chn := bot.get_channel(chn_id), (TextChannel, Thread)):
+        if not isinstance(chn := await _get_channel(bot, chn_id), (TextChannel, Thread, DMChannel)):
             logger.warning("could not delete message %s in unknown channel %s", msg_id, chn_id)
             return
 

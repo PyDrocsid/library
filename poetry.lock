@@ -826,6 +826,14 @@ optional = false
 python-versions = ">=3.7"
 
 [[package]]
+name = "types-certifi"
+version = "2021.10.8.2"
+description = "Typing stubs for certifi"
+category = "dev"
+optional = false
+python-versions = "*"
+
+[[package]]
 name = "types-pyyaml"
 version = "6.0.7"
 description = "Typing stubs for PyYAML"
@@ -898,7 +906,7 @@ multidict = ">=4.0"
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.10"
-content-hash = "688b1fbece2596e78f17693e57d7e1b6a66ff93a3be04e827732c2b81dbf9baa"
+content-hash = "ff134ecce14a7a5eec83da426cfa1947232eb07ce4e9efaaa6500609bee39e46"
 
 [metadata.files]
 aenum = [
@@ -1539,6 +1547,10 @@ testfixtures = [
 tomli = [
     {file = "tomli-2.0.1-py3-none-any.whl", hash = "sha256:939de3e7a6161af0c887ef91b7d41a53e7c5a1ca976325f429cb46ea9bc30ecc"},
     {file = "tomli-2.0.1.tar.gz", hash = "sha256:de526c12914f0c550d15924c62d72abc48d6fe7364aa87328337a31007fe8a4f"},
+]
+types-certifi = [
+    {file = "types-certifi-2021.10.8.2.tar.gz", hash = "sha256:a36dc1cb4aeeea8c97430297db10b4c0481ba612ed443e48e3e8aa091f359440"},
+    {file = "types_certifi-2021.10.8.2-py3-none-any.whl", hash = "sha256:d8d61752071a10747f441c169967e31d43c1875d851973f4f9851c1cb8c5ed9d"},
 ]
 types-pyyaml = [
     {file = "types-PyYAML-6.0.7.tar.gz", hash = "sha256:59480cf44595d836aaae050f35e3c39f197f3a833679ef3978d97aa9f2fb7def"},

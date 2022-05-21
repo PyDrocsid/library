@@ -31,6 +31,7 @@ wemake-python-styleguide = "^0.16.1"
 mypy = "^0.950"
 SQLAlchemy = { extras = ["mypy"], version = "^1.4.32" }
 types-PyYAML = "^6.0.5"
+types-certifi = "^2021.10.8"
 
 [tool.poe.tasks]
 flake8 = "flake8 . --count --statistics --show-source"
