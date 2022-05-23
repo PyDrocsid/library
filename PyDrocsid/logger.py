@@ -6,7 +6,7 @@ from sentry_sdk.integrations.aiohttp import AioHttpIntegration
 from sentry_sdk.integrations.logging import LoggingIntegration
 from sentry_sdk.integrations.sqlalchemy import SqlalchemyIntegration
 
-from PyDrocsid.environment import LOG_LEVEL, PYCORD_LOG_LEVEL
+from PyDrocsid.environment import LOG_LEVEL, PYCORD_LOG_LEVEL, SENTRY_ENVIRONMENT
 
 
 def setup_sentry(dsn: str, name: str, version: str) -> None:
@@ -22,6 +22,7 @@ def setup_sentry(dsn: str, name: str, version: str) -> None:
             LoggingIntegration(level=logging.DEBUG, event_level=logging.WARNING),
         ],
         release=f"{name}@{version}",
+        environment=SENTRY_ENVIRONMENT,
     )
 
 

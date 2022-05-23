@@ -24,6 +24,7 @@ MAX_OVERFLOW: int = int(getenv("MAX_OVERFLOW", 20))
 SQL_SHOW_STATEMENTS: bool = get_bool("SQL_SHOW_STATEMENTS", False)
 
 SENTRY_DSN: str | None = getenv("SENTRY_DSN")  # sentry data source name
+SENTRY_ENVIRONMENT: str = getenv("SENTRY_ENVIRONMENT", "production")
 GITHUB_TOKEN: str | None = getenv("GITHUB_TOKEN")  # github personal access token
 
 OWNER_ID: int = int(getenv("OWNER_ID", 0))
