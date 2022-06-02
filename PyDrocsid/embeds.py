@@ -191,7 +191,7 @@ async def send_long_embed(
 
     # add embed fields
     for field in fields:
-        parts = split_lines(cast(str, field.value), EmbedLimits.FIELD_VALUE)
+        parts = split_lines(field.value, EmbedLimits.FIELD_VALUE)
         inline = bool(field.inline) and len(parts) == 1
 
         if not field.name:
@@ -223,7 +223,7 @@ async def send_long_embed(
 
             # add field parts individually
             for i, part in enumerate(parts):
-                name: str = [cast(str, field.name), EMPTY_MARKDOWN][i > 0]
+                name: str = [field.name, EMPTY_MARKDOWN][i > 0]
 
                 # check whether embed is full
                 if len(cur.fields) >= max_fields or len(cur) + len(name) + len(part) > max_total:
@@ -231,7 +231,7 @@ async def send_long_embed(
                     add_embed(cur)
                     clear_embed(clear_completely=True)
                     if repeat_name:
-                        name = cast(str, field.name)
+                        name = field.name
 
                 # add field part
                 cur.add_field(name=name, value=part, inline=inline)

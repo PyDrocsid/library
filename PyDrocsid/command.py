@@ -175,8 +175,9 @@ class ConfirmationButton(ui.Button[ui.View]):
         self._confirmation = confirmation
         self._result = result
 
-    async def callback(self, _: Any) -> None:
+    async def callback(self, interaction: Interaction) -> None:
         await self._confirmation.callback(self._result)
+        await interaction.response.defer()
 
 
 class Confirmation(ui.View):

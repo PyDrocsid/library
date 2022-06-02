@@ -20,6 +20,7 @@ class PaginatorButton(ui.Button[ui.View]):
 
     async def callback(self, interaction: Interaction) -> None:
         await self.paginator.goto_page(self.page)
+        await interaction.response.defer()
 
 
 class Paginator(ui.View):
