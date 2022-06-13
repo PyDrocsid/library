@@ -279,6 +279,10 @@ class Events:
         await call_event_handlers("command_error", ctx, error, identifier=ctx.message.id)
 
     @staticmethod
+    async def on_thread_create(_: Bot, thread: Thread) -> None:
+        await call_event_handlers("thread_create", thread, identifier=thread.id)
+
+    @staticmethod
     async def on_thread_join(_: Bot, thread: Thread) -> None:
         await call_event_handlers("thread_join", thread, identifier=thread.id)
 

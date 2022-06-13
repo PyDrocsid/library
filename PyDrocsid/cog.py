@@ -132,6 +132,9 @@ class Cog(DiscordCog):
     async def on_command_error(self, ctx: Context[Bot], error: CommandError) -> None:
         pass
 
+    async def on_thread_create(self, thread: Thread) -> None:
+        pass
+
     async def on_thread_join(self, thread: Thread) -> None:
         pass
 
