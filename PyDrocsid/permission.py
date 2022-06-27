@@ -40,8 +40,8 @@ class PermissionModel(Base):
     async def get(permission: str, default: int) -> int:
         """Get the configured level of a given permission."""
 
-        if await redis.exists(rkey := f"permissions:{permission}"):
-            return int(await redis.get(rkey))
+        if (value := await redis.get(rkey := f"permissions:{permission}")) is not None:
+            return int(value)
 
         if (row := await db.get(PermissionModel, permission=permission)) is None:
             row = await PermissionModel.create(permission, default)

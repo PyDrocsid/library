@@ -37,12 +37,10 @@ class SettingsModel(Base):
     async def get(dtype: Type[Value], key: str, default: Value) -> Value:
         """Get the value of a given setting."""
 
-        if await redis.exists(rkey := f"settings:{key}"):
-            out = await redis.get(rkey)
-        else:
+        if (out := await redis.get(rkey := f"settings:{key}")) is None:
             if (row := await db.get(SettingsModel, key=key)) is None:
                 row = await SettingsModel._create(key, default)
-            out = row.value
+            out = row.value  # type: ignore
             await redis.setex(rkey, CACHE_TTL, out)
 
         return dtype(int(out) if dtype is bool else out)
