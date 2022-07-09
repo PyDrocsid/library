@@ -195,7 +195,7 @@ class Confirmation(ui.View):
         self._user = user
         self._delete_after_confirm = delete_after_confirm
         self._delete_after_cancel = delete_after_cancel
-        self._message: Message | InteractionResponse | None = None
+        self._msg: Message | InteractionResponse | None = None
         self._result: bool | None = None
 
     async def run(
@@ -216,13 +216,13 @@ class Confirmation(ui.View):
 
         await self._update()
 
-        if not isinstance(self._message, Message):
+        if not isinstance(self._msg, Message):
             return result
 
         if result and self._delete_after_confirm is not None:
-            await self._message.delete(delay=self._delete_after_confirm)
+            await self._msg.delete(delay=self._delete_after_confirm)
         elif not result and self._delete_after_cancel is not None:
-            await self._message.delete(delay=self._delete_after_cancel)
+            await self._msg.delete(delay=self._delete_after_cancel)
 
         return result
 
@@ -251,15 +251,15 @@ class Confirmation(ui.View):
 
     async def _reply(self, channel: Message | Messageable | InteractionResponse, **kwargs: Any) -> Message | None:
         msg = await reply(channel, view=self, **kwargs)
-        self._message = channel if isinstance(channel, InteractionResponse) else msg
+        self._msg = channel if isinstance(channel, InteractionResponse) else msg
         return msg
 
     async def _update(self) -> None:
         self._update_buttons()
-        if isinstance(self._message, Message):
-            await self._message.edit(view=self)
-        elif isinstance(self._message, InteractionResponse):
-            await self._message.edit_message(view=self)
+        if isinstance(self._msg, Message):
+            await self._msg.edit(view=self)
+        elif isinstance(self._msg, InteractionResponse):
+            await self._msg.edit_message(view=self)
 
     async def callback(self, result: bool) -> None:
         self._result = result
