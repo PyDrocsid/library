@@ -63,12 +63,12 @@ class UserMemberConverter(Converter[User | Member]):
             raise BadArgument(t.user_not_found)
 
 
-class DurationConverter(Converter):
+class DurationConverter(Converter[int | None]):
     """
     Converter for retrieving minutes from a string containing different time units
     """
 
-    async def convert(self, ctx, argument: str) -> int | None:
+    async def convert(self, ctx: Context[Bot], argument: str) -> int | None:
         if argument.lower() in ("inf", "perm", "permanent", "-1", "∞"):
             return None
         if (match := re.match(r"^(\d+y)?(\d+m)?(\d+w)?(\d+d)?(\d+H)?(\d+M)?$", argument)) is None:

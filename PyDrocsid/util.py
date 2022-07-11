@@ -246,7 +246,7 @@ def time_to_units(minutes: int | float) -> str:
         datetime.fromtimestamp(0) + timedelta(minutes=minutes), datetime.fromtimestamp(0)
     )  # Workaround that should be improved later
 
-    def get_func(key: str, value: int) -> str:
+    def get_func(key: str, value: int) -> Any:
         func = getattr(t.times, key)
         return func(cnt=value)
 
