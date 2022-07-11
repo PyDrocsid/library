@@ -10,6 +10,7 @@ members: Members
 status: Status
 delay: Delay
 invalid_duration: Invalid duration.
+invalid_duration_inf: Invalid duration. Try `inf` instead.
 duration_suffixes: "Invalid duration. Please specify a duration using the suffixes y (years), m (months), w (weeks), d (days), H (hours) and M (Minutes).\nYou need to use this exact order, for example: 5y3w2H (5 years, 3 weeks, 2 hours)."
 invalid_color: Invalid color.
 requested_by: Requested by @{} ({})
@@ -37,3 +38,20 @@ message_send_permission_error:
   could_not_send_embed: Message could not be sent because I don't have `embed_links` permission in {}.
 
 could_not_add_reaction: Could not add reactions because I don't have `add_reactions` permission in {}.
+
+times:
+  days:
+    one: "{cnt} day"
+    many: "{cnt} days"
+  hours:
+    one: "{cnt} hour"
+    many: "{cnt} hours"
+  minutes:
+    one: "{cnt} minute"
+    many: "{cnt} minutes"
+  months:
+    one: "{cnt} month"
+    many: "{cnt} months"
+  years:
+    one: "{cnt} year"
+    many: "{cnt} years"
