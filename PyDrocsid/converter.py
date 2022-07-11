@@ -79,8 +79,12 @@ class DurationConverter(Converter[int | None]):
             0 if (value := match.group(i)) is None else int(value[:-1]) for i in range(1, 7)
         ]
 
-        rd = relativedelta(years=years, months=months, weeks=weeks, days=days)
-        td = timedelta(days=rd.days, hours=hours, minutes=minutes)
+        if any(unit_value >= (1 << 31) for unit_value in (years, months, weeks, days, hours, minutes)):
+            raise BadArgument(t.invalid_duration_inf)
+
+        days += years * 365
+        days += months * 30
+        td = timedelta(weeks=weeks, days=days, hours=hours, minutes=minutes)
         duration = int(td.total_seconds() / 60)
 
         if duration <= 0:
