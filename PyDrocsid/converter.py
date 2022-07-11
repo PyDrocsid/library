@@ -1,7 +1,6 @@
 import re
 from datetime import timedelta
 
-from dateutil.relativedelta import relativedelta
 from discord import Guild, HTTPException, Member, NotFound, PartialEmoji, User
 from discord.ext.commands import Bot
 from discord.ext.commands.context import Context
