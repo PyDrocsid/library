@@ -1,4 +1,5 @@
 import re
+from datetime import timedelta
 
 from discord import Guild, HTTPException, Member, NotFound, PartialEmoji, User
 from discord.ext.commands import Bot
@@ -60,3 +61,31 @@ class UserMemberConverter(Converter[User | Member]):
             return await ctx.bot.fetch_user(user_id)
         except (NotFound, HTTPException):
             raise BadArgument(t.user_not_found)
+
+
+class DurationConverter(Converter):
+    """
+    Converter for retrieving minutes from a string containing different time units
+    """
+
+    async def convert(self, ctx, argument: str) -> int | None:
+        if argument.lower() in ("inf", "perm", "permanent", "-1", "∞"):
+            return None
+        if (match := re.match(r"^(\d+y)?(\d+m)?(\d+w)?(\d+d)?(\d+H)?(\d+M)?$", argument)) is None:
+            raise BadArgument(t.duration_suffixes)
+
+        years, months, weeks, days, hours, minutes = [
+            0 if (value := match.group(i)) is None else int(value[:-1]) for i in range(1, 7)
+        ]
+
+        years += days * 365
+        days += months * 30
+        days += weeks * 7
+        td = timedelta(days=days, hours=hours, minutes=minutes)
+        duration = int(td.total_seconds() / 60)
+
+        if duration <= 0:
+            raise BadArgument(t.invalid_duration)
+        if duration >= (1 << 31):
+            raise BadArgument(t.invalid_duration_inf)
+        return duration

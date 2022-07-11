@@ -22,6 +22,7 @@ aioredis = "^2.0.1"
 asyncpg = "^0.25.0"
 aiomysql = "^0.1.1"
 httpx = "^0.23.0"
+python-dateutil = "^2.8.2"
 
 [tool.poetry.dev-dependencies]
 flake8 = "^4.0.1"
