@@ -1,6 +1,7 @@
 import re
 from datetime import timedelta
 
+from dateutil.relativedelta import relativedelta
 from discord import Guild, HTTPException, Member, NotFound, PartialEmoji, User
 from discord.ext.commands import Bot
 from discord.ext.commands.context import Context
@@ -78,10 +79,8 @@ class DurationConverter(Converter[int | None]):
             0 if (value := match.group(i)) is None else int(value[:-1]) for i in range(1, 7)
         ]
 
-        years += days * 365
-        days += months * 30
-        days += weeks * 7
-        td = timedelta(days=days, hours=hours, minutes=minutes)
+        rd = relativedelta(years=years, months=months, weeks=weeks, days=days)
+        td = timedelta(days=rd.days, hours=hours, minutes=minutes)
         duration = int(td.total_seconds() / 60)
 
         if duration <= 0:
