@@ -65,13 +65,13 @@ class UserMemberConverter(Converter[User | Member]):
 
 class DurationConverter(Converter[int | None]):
     """
-    Converter for retrieving minutes from a string containing different time units
+    Converter for retrieving minutes from a string containing different time units.
     """
 
     async def convert(self, ctx: Context[Bot], argument: str) -> int | None:
         """
         Extracts information about years, months, weeks, days, hours and minutes from a string
-        and returns the total amount of time in minutes
+        and returns the total amount of time in minutes.
         :param ctx: the context the converter was called in
         :param argument: the string with the different time units or a variation of 'inf' for an infinite time span
         :returns: the total amount of time in minutes as an int or None if the time span is infinite
