@@ -69,6 +69,13 @@ class DurationConverter(Converter[int | None]):
     """
 
     async def convert(self, ctx: Context[Bot], argument: str) -> int | None:
+        """
+        Extracts information about years, months, weeks, days, hours and minutes from a string
+        and returns the total amount of time in minutes
+        :param ctx: the context the converter was called in
+        :param argument: the string with the different time units or a variation of 'inf' for an infinite time span
+        :returns: the total amount of time in minutes as an int or None if the time span is infinite
+        """
         if argument.lower() in ("inf", "perm", "permanent", "-1", "∞"):
             return None
         if (match := re.match(r"^(\d+y)?(\d+m)?(\d+w)?(\d+d)?(\d+H)?(\d+M)?$", argument)) is None:

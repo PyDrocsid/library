@@ -238,7 +238,7 @@ def check_message_send_permissions(
 
 def time_to_units(minutes: int | float) -> str:
     """
-    Util function to split minutes back into different time units
+    Util function to split a time span given in minutes into the different units years, months, days, hours and minutes
     """
     _keys = ("years", "months", "days", "hours", "minutes")
 
