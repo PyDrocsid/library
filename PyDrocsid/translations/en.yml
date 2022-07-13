@@ -11,7 +11,7 @@ status: Status
 delay: Delay
 invalid_duration: Invalid duration.
 invalid_duration_inf: Invalid duration. Try `inf` instead.
-duration_suffixes: "Invalid duration. Please specify a duration using the suffixes y (years), m (months), w (weeks), d (days), H (hours) and M (Minutes).\nYou need to use this exact order, for example: 5y3w2H (5 years, 3 weeks, 2 hours)."
+duration_suffixes: "Invalid duration. Please specify a duration using the suffixes y (years), m (months), w (weeks), d (days), H (hours), and M (Minutes).\nYou need to use this exact order, for example, 5y3w2H (5 years, 3 weeks, 2 hours)."
 invalid_color: Invalid color.
 requested_by: Requested by @{} ({})
 error: ":x: Error"
