@@ -13,8 +13,6 @@ from PyDrocsid.translations import t
 
 t = t.g
 
-TOO_BIG_NUMBER = 1 << 31
-
 
 class EmojiConverter(PartialEmojiConverter):
     """Emoji converter which also supports unicode emojis."""
@@ -88,13 +86,12 @@ class DurationConverter(Converter[int | None]):
             0 if (value := match.group(i)) is None else int(value[:-1]) for i in range(1, 7)
         ]
 
-        if any(unit_value >= TOO_BIG_NUMBER for unit_value in (years, months, weeks, days, hours, minutes)):
-            raise BadArgument(t.invalid_duration_inf)
-
         days += years * 365
         days += months * 30
 
-        if days >= TOO_BIG_NUMBER:
+        days_test = int(days + (weeks * 7) + (hours / 24) + ((minutes / 60) / 24))
+
+        if days_test >= timedelta.max.days:
             raise BadArgument(t.invalid_duration_inf)
 
         td = timedelta(weeks=weeks, days=days, hours=hours, minutes=minutes)
@@ -102,6 +99,4 @@ class DurationConverter(Converter[int | None]):
 
         if duration <= 0:
             raise BadArgument(t.invalid_duration)
-        if duration >= TOO_BIG_NUMBER:
-            raise BadArgument(t.invalid_duration_inf)
         return duration
