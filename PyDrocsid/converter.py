@@ -76,6 +76,9 @@ class DurationConverter(Converter[int | None]):
         :param argument: the string with the different time units or a variation of 'inf' for an infinite time span
         :returns: the total amount of time in minutes as an int or None if the time span is infinite
         """
+
+        too_big_number = 1 << 31
+
         if argument.lower() in ("inf", "perm", "permanent", "-1", "∞"):
             return None
         if (match := re.match(r"^(\d+y)?(\d+m)?(\d+w)?(\d+d)?(\d+H)?(\d+M)?$", argument)) is None:
@@ -85,16 +88,20 @@ class DurationConverter(Converter[int | None]):
             0 if (value := match.group(i)) is None else int(value[:-1]) for i in range(1, 7)
         ]
 
-        if any(unit_value >= (1 << 31) for unit_value in (years, months, weeks, days, hours, minutes)):
+        if any(unit_value >= too_big_number for unit_value in (years, months, weeks, days, hours, minutes)):
             raise BadArgument(t.invalid_duration_inf)
 
         days += years * 365
         days += months * 30
+
+        if days >= too_big_number:
+            raise BadArgument(t.invalid_duration_inf)
+
         td = timedelta(weeks=weeks, days=days, hours=hours, minutes=minutes)
         duration = int(td.total_seconds() / 60)
 
         if duration <= 0:
             raise BadArgument(t.invalid_duration)
-        if duration >= (1 << 31):
+        if duration >= too_big_number:
             raise BadArgument(t.invalid_duration_inf)
         return duration
