@@ -1,4 +1,5 @@
 import re
+from datetime import timedelta
 
 from discord import Guild, HTTPException, Member, NotFound, PartialEmoji, User
 from discord.ext.commands import Bot
@@ -60,3 +61,42 @@ class UserMemberConverter(Converter[User | Member]):
             return await ctx.bot.fetch_user(user_id)
         except (NotFound, HTTPException):
             raise BadArgument(t.user_not_found)
+
+
+class DurationConverter(Converter[int | None]):
+    """
+    Converter for retrieving minutes from a string containing different time units.
+    """
+
+    async def convert(self, ctx: Context[Bot], argument: str) -> int | None:
+        """
+        Extracts information about years, months, weeks, days, hours and minutes from a string
+        and returns the total amount of time in minutes.
+        :param ctx: the context the converter was called in
+        :param argument: the string with the different time units or a variation of 'inf' for an infinite time span
+        :returns: the total amount of time in minutes as an int or None if the time span is infinite
+        """
+
+        if argument.lower() in ("inf", "perm", "permanent", "-1", "∞"):
+            return None
+        if (match := re.match(r"^(\d+y)?(\d+m)?(\d+w)?(\d+d)?(\d+H)?(\d+M)?$", argument)) is None:
+            raise BadArgument(t.duration_suffixes)
+
+        years, months, weeks, days, hours, minutes = [
+            0 if (value := match.group(i)) is None else int(value[:-1]) for i in range(1, 7)
+        ]
+
+        days += years * 365
+        days += months * 30
+
+        days_test = int(days + (weeks * 7) + (hours / 24) + ((minutes / 60) / 24))
+
+        if days_test >= timedelta.max.days:
+            raise BadArgument(t.invalid_duration_inf)
+
+        td = timedelta(weeks=weeks, days=days, hours=hours, minutes=minutes)
+        duration = int(td.total_seconds() / 60)
+
+        if duration <= 0:
+            raise BadArgument(t.invalid_duration)
+        return duration

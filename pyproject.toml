@@ -22,6 +22,7 @@ aioredis = "^2.0.1"
 asyncpg = "^0.25.0"
 aiomysql = "^0.1.1"
 httpx = "^0.23.0"
+python-dateutil = "^2.8.2"
 
 [tool.poetry.dev-dependencies]
 flake8 = "^4.0.1"
@@ -32,6 +33,7 @@ mypy = "^0.961"
 SQLAlchemy = { extras = ["mypy"], version = "^1.4.32" }
 types-PyYAML = "^6.0.5"
 types-certifi = "^2021.10.8"
+types-python-dateutil = "^2.8.18"
 
 [tool.poe.tasks]
 flake8 = "flake8 . --count --statistics --show-source"

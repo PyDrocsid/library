@@ -1,9 +1,11 @@
 import io
 import re
+from datetime import datetime, timedelta
 from socket import AF_INET, SHUT_RD, SOCK_STREAM, gethostbyname, socket, timeout
 from time import time
 from typing import Any, cast
 
+from dateutil.relativedelta import relativedelta
 from discord import (
     Attachment,
     Colour,
@@ -232,3 +234,20 @@ def check_message_send_permissions(
         raise CommandError(t.message_send_permission_error.could_not_send_file(channel.mention))
     if check_embed and not permissions.embed_links:
         raise CommandError(t.message_send_permission_error.could_not_send_embed(channel.mention))
+
+
+def time_to_units(minutes: int | float) -> str:
+    """
+    Util-function to split a time span given in minutes into the different units years, months, days, hours and minutes.
+    """
+    _keys = ("years", "months", "days", "hours", "minutes")
+
+    rd = relativedelta(
+        datetime.fromtimestamp(0) + timedelta(minutes=minutes), datetime.fromtimestamp(0)
+    )  # Workaround that should be improved later
+
+    def get_func(key: str, value: int) -> Any:
+        func = getattr(t.times, key)
+        return func(cnt=value)
+
+    return ", ".join(get_func(key, time) for key in _keys if (time := getattr(rd, key)) != 0)
